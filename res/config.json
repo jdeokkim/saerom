@@ -1,0 +1,32 @@
+{
+  "logging": {
+    "level": "info",
+    "filename": "bot.log",
+    "quiet": false,
+    "overwrite": true,
+    "use_color": true,
+    "http": {
+      "enable": true,
+      "filename": "http.log"
+    },
+    "disable_modules": ["WEBSOCKETS", "USER_AGENT"]
+  },
+  "discord": {
+    "token": "YOUR-BOT-TOKEN",
+    "default_prefix": {
+      "enable": false,
+      "prefix": "^"
+    }
+  },
+  "saerom": {
+    "krdict": {
+      "enable": true,
+      "api_key": "YOUR-API-KEY"
+    },
+    "papago": {
+      "enable": true,
+      "client_id": "YOUR-CLIENT-ID",
+      "client_secret": "YOUR-CLIENT-SECRET"
+    }
+  }
+}
