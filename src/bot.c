@@ -40,6 +40,8 @@ struct sr_command {
     );
 };
 
+/* | `bot` 모듈 상수 및 변수... | */
+
 /* Discord 봇의 명령어 목록. */
 static const struct sr_command slash_commands[] = {
     {
@@ -61,8 +63,6 @@ static const struct sr_command slash_commands[] = {
         .on_run = run_papago_command
     }
 };
-
-/* | `bot` 모듈 상수 및 변수... | */
 
 /* `CURLV` 인터페이스. */
 static CURLV *curlv;
