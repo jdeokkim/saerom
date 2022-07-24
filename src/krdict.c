@@ -301,7 +301,7 @@ static void on_interaction(
     discord_channel_cleanup(&ret_channel);
 
     log_info(
-        "[SAEROM] Attempting to send a direct message to %s#%s",
+        "[SAEROM] Attempting to send a direct message to `%s#%s`",
         user->username,
         user->discriminator
     );
@@ -568,7 +568,7 @@ static void handle_error(struct krdict_context *context, const char *code) {
     if (context == NULL || code == NULL) return; 
 
     log_warn(
-        "[SAEROM] An error (%s) has occured while processing the request",
+        "[SAEROM] An error (`%s`) has occured while processing the request",
         code
     );
 

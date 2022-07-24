@@ -27,7 +27,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.1.1"
+#define APPLICATION_VERSION      "v0.2.0-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 #define APPLICATION_ID            986954825176596498
@@ -97,6 +97,11 @@ void run_info_command(
     struct discord *client,
     const struct discord_interaction *event
 );
+
+/* | `input` 모듈 함수... | */
+
+/* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
+void *read_input(void *arg);
 
 /* | `krdict` 모듈 함수... | */
 

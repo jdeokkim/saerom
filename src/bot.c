@@ -102,6 +102,9 @@ static void sr_config_init(void);
 /* Discord 봇의 추가 정보에 할당된 메모리를 해제한다. */
 static void sr_config_cleanup(void);
 
+/* 표준 입력 스트림에서 명령어를 입력받는 스레드를 생성한다. */
+static void sr_input_reader_init(void);
+
 /* Discord 봇의 명령어들을 생성한다. */
 static void create_slash_commands(struct discord *client);
 
@@ -330,6 +333,8 @@ static void sr_config_init(void) {
 
         strncpy(config.papago.client_secret, field.start, field.size);
     }
+
+    sr_input_reader_init();
 }
 
 /* Discord 봇의 추가 정보에 할당된 메모리를 해제한다. */
@@ -337,6 +342,22 @@ static void sr_config_cleanup(void) {
     curlv_cleanup(curlv);
 
     sigar_close(sigar);
+}
+
+/* 표준 입력 스트림에서 명령어를 입력받는 스레드를 생성한다. */
+static void sr_input_reader_init(void) {
+    pthread_attr_t attributes;
+
+    pthread_attr_init(&attributes);
+    pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
+
+    pthread_t handle;
+
+    log_info("[SAEROM] Creating a detached input reader thread `~%ld`", handle);
+
+    pthread_create(&handle, &attributes, &read_input, client);
+
+    pthread_attr_destroy(&attributes);
 }
 
 /* Discord 봇의 명령어들을 생성한다. */

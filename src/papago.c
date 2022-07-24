@@ -291,7 +291,7 @@ static void handle_error(struct papago_context *context, const char *code) {
     if (context == NULL || code == NULL) return;
 
     log_warn(
-        "[SAEROM] An error (%s) has occured while processing the request",
+        "[SAEROM] An error (`%s`) has occured while processing the request",
         code
     );
 
