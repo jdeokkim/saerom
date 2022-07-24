@@ -144,7 +144,7 @@ void run_papago_command(
 
     snprintf(
         buffer, 
-        DISCORD_MAX_MESSAGE_LEN, 
+        sizeof(buffer), 
         "source=%s&target=%s&text=%s",
         source, 
         target, 
@@ -165,7 +165,7 @@ void run_papago_command(
 
     snprintf(
         buffer, 
-        DISCORD_MAX_MESSAGE_LEN, 
+        sizeof(buffer), 
         "X-Naver-Client-Id: %s",
         config->papago.client_id
     );
@@ -174,7 +174,7 @@ void run_papago_command(
 
     snprintf(
         buffer, 
-        DISCORD_MAX_MESSAGE_LEN, 
+        sizeof(buffer), 
         "X-Naver-Client-Secret: %s",
         config->papago.client_secret
     );

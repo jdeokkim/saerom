@@ -45,7 +45,7 @@ A C99 Discord bot for Korean learning servers.
 
 - GCC version 9.4.0+
 - GNU Make version 4.1+
-- CMake version 3.22.0+
+- CMake version 3.10.0+
 - Git version 2.17.1+
 - libcurl4 version 7.58.0+ (with OpenSSL flavor)
 

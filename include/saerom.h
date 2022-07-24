@@ -26,7 +26,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.1.0"
+#define APPLICATION_VERSION      "v0.1.1"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 #define APPLICATION_ID            986954825176596498

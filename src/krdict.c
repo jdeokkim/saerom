@@ -36,6 +36,7 @@ struct krdict_context {
         u64snowflake id;
         char *token;
     } event;
+    bool translated;
 };
 
 /* `krdict` 모듈 명령어의 개별 검색 결과를 나타내는 구조체. */
@@ -173,6 +174,7 @@ void run_krdict_command(
     context->client = client;
     context->event.id = event->id;
     context->event.token = malloc(strlen(event->token) + 1);
+    context->translated = string_equals(translated, "true");
 
     strcpy(context->event.token, event->token);
 
@@ -450,15 +452,25 @@ static void on_response(CURLV_STR res, void *user_data) {
                     strcat(buffer, item.entry);
                 } else if (string_equals(elem, "sense_order")) {
                     order = atoi(content);
-
-                    if (order >= KRDICT_MAX_ORDER_COUNT) break;
+                } else if (string_equals(elem, "definition")) {
+                    if (context->translated) break;
 
                     len = strlen(buffer);
 
                     snprintf(
                         buffer + len, 
                         sizeof(buffer) - len,
-                        "**%s. ",
+                        "**%d. %s**\n- ",
+                        order,
+                        item.word
+                    );
+
+                    len = strlen(buffer);
+
+                    snprintf(
+                        buffer + len, 
+                        sizeof(buffer) - len,
+                        "%s\n\n",
                         content
                     );
                 } else if (string_equals(elem, "trans_word")) {
@@ -469,7 +481,8 @@ static void on_response(CURLV_STR res, void *user_data) {
                     snprintf(
                         buffer + len, 
                         sizeof(buffer) - len,
-                        "%s**\n- ",
+                        "**%d. %s**\n- ",
+                        order,
                         content
                     );
                 } else if (string_equals(elem, "trans_dfn")) {
