@@ -27,23 +27,10 @@
 
 #define CONFIG_PATH "res/config.json"
 
-/* | `bot` 모듈 자료형 정의... | */
-
-/* Discord 봇의 명령어를 나타내는 구조체. */
-struct sr_command {
-    char *name;
-    void (*on_create)(struct discord *client);
-    void (*on_release)(struct discord *client);
-    void (*on_run)(
-        struct discord *client,
-        const struct discord_interaction *event
-    );
-};
-
 /* | `bot` 모듈 상수 및 변수... | */
 
 /* Discord 봇의 명령어 목록. */
-static const struct sr_command slash_commands[] = {
+static const struct sr_command commands[] = {
     {
         .name = "info",
         .on_create = create_info_command,
@@ -106,10 +93,10 @@ static void sr_config_cleanup(void);
 static void sr_input_reader_init(void);
 
 /* Discord 봇의 명령어들을 생성한다. */
-static void create_slash_commands(struct discord *client);
+static void create_commands(struct discord *client);
 
 /* Discord 봇의 명령어들에 할당된 메모리를 해제한다. */
-static void release_slash_commands(struct discord *client);
+static void release_commands(struct discord *client);
 
 /* Discord 봇을 초기화한다. */
 void init_bot(int argc, char *argv[]) {
@@ -123,7 +110,7 @@ void init_bot(int argc, char *argv[]) {
     discord_set_on_ready(client, on_ready);
     discord_set_on_interaction_create(client, on_interaction_create);
 
-    create_slash_commands(client);
+    create_commands(client);
 }
 
 /* Discord 봇을 실행한다. */
@@ -133,13 +120,20 @@ void run_bot(void) {
 
 /* Discord 봇에 할당된 메모리를 해제한다. */
 void deinit_bot(void) {
-    release_slash_commands(client);
+    release_commands(client);
 
     sr_config_cleanup();
 
     discord_cleanup(client);
 
     ccord_global_cleanup();
+}
+
+/* Discord 봇의 명령어 목록을 반환한다. */
+const struct sr_command *get_commands(int *len) {
+    if (len != NULL) *len = sizeof(commands) / sizeof(*commands);
+
+    return commands;
 }
 
 /* `CURLV` 인터페이스를 반환한다. */
@@ -265,9 +259,9 @@ static void on_interaction_create(
                 user->discriminator
             );
 
-            for (int i = 0; i < sizeof(slash_commands) / sizeof(*slash_commands); i++)
-                if (string_equals(context, slash_commands[i].name))
-                    slash_commands[i].on_run(client, event);
+            for (int i = 0; i < sizeof(commands) / sizeof(*commands); i++)
+                if (streq(context, commands[i].name))
+                    commands[i].on_run(client, event);
 
             break;
 
@@ -281,11 +275,11 @@ static void on_interaction_create(
                 user->discriminator
             );
 
-            for (int i = 0; i < sizeof(slash_commands) / sizeof(*slash_commands); i++) {
-                const char *name = slash_commands[i].name;
+            for (int i = 0; i < sizeof(commands) / sizeof(*commands); i++) {
+                const char *name = commands[i].name;
 
                 if (strncmp(context, name, strlen(name)) == 0) 
-                    slash_commands[i].on_run(client, event);
+                    commands[i].on_run(client, event);
             }
 
             break;
@@ -361,31 +355,37 @@ static void sr_input_reader_init(void) {
 }
 
 /* Discord 봇의 명령어들을 생성한다. */
-static void create_slash_commands(struct discord *client) {
-    for (int i = 0; i < sizeof(slash_commands) / sizeof(*slash_commands); i++) {
-        if (string_equals(slash_commands[i].name, "krd")
+static void create_commands(struct discord *client) {
+    int commands_len = sizeof(commands) / sizeof(*commands);
+
+    log_info("[SAEROM] Creating %d bot command(s)", commands_len);
+
+    for (int i = 0; i < commands_len; i++) {
+        if (streq(commands[i].name, "krd")
             && !(config.flags & SR_FLAG_KRDICT)) continue;
 
-        if (string_equals(slash_commands[i].name, "ppg")
+        if (streq(commands[i].name, "ppg")
             && !(config.flags & SR_FLAG_PAPAGO)) continue;
 
-        log_info("[SAEROM] Creating global application command `/%s`", slash_commands[i].name);
-
-        slash_commands[i].on_create(client);
+        if (commands[i].on_create != NULL)
+            commands[i].on_create(client);
     }
 }
 
 /* Discord 봇의 명령어들에 할당된 메모리를 해제한다. */
-static void release_slash_commands(struct discord *client) {
-    for (int i = 0; i < sizeof(slash_commands) / sizeof(*slash_commands); i++) {
-        if (string_equals(slash_commands[i].name, "krd")
+static void release_commands(struct discord *client) {
+    int commands_len = sizeof(commands) / sizeof(*commands);
+
+    log_info("[SAEROM] Releasing %d bot command(s)", commands_len);
+
+    for (int i = 0; i < commands_len; i++) {
+        if (streq(commands[i].name, "krd")
             && !(config.flags & SR_FLAG_KRDICT)) continue;
 
-        if (string_equals(slash_commands[i].name, "ppg")
+        if (streq(commands[i].name, "ppg")
             && !(config.flags & SR_FLAG_PAPAGO)) continue;
 
-        log_info("[SAEROM] Releasing global application command `/%s`", slash_commands[i].name);
-
-        slash_commands[i].on_release(client);
+        if (commands[i].on_release != NULL)
+            commands[i].on_release(client);
     }
 }

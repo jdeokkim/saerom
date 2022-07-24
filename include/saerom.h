@@ -52,6 +52,17 @@ struct sr_config {
     } papago;
 };
 
+/* Discord 봇의 명령어를 나타내는 구조체. */
+struct sr_command {
+    char *name;
+    void (*on_create)(struct discord *client);
+    void (*on_release)(struct discord *client);
+    void (*on_run)(
+        struct discord *client,
+        const struct discord_interaction *event
+    );
+};
+
 /* Discord 봇의 환경 설정 플래그를 나타내는 열거형. */
 enum sr_flag {
     SR_FLAG_KRDICT = (1 << 0),
@@ -68,6 +79,9 @@ void run_bot(void);
 
 /* Discord 봇에 할당된 메모리를 해제한다. */
 void deinit_bot(void);
+
+/* Discord 봇의 명령어 목록을 반환한다. */
+const struct sr_command *get_commands(int *len);
 
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void);
@@ -86,13 +100,13 @@ uint64_t get_uptime(void);
 
 /* | `info` 모듈 함수... | */
 
-/* `info` 모듈 명령어를 생성한다. */
+/* `/info` 명령어를 생성한다. */
 void create_info_command(struct discord *client);
 
-/* `info` 모듈 명령어에 할당된 메모리를 해제한다. */
+/* `/info` 명령어에 할당된 메모리를 해제한다. */
 void release_info_command(struct discord *client);
 
-/* `info` 모듈 명령어를 실행한다. */
+/* `/info` 명령어를 실행한다. */
 void run_info_command(
     struct discord *client,
     const struct discord_interaction *event
@@ -105,13 +119,13 @@ void *read_input(void *arg);
 
 /* | `krdict` 모듈 함수... | */
 
-/* `krdict` 모듈 명령어를 생성한다. */
+/* `/krd` 명령어를 생성한다. */
 void create_krdict_command(struct discord *client);
 
-/* `krdict` 모듈 명령어에 할당된 메모리를 해제한다. */
+/* `/krd` 명령어에 할당된 메모리를 해제한다. */
 void release_krdict_command(struct discord *client);
 
-/* `krdict` 모듈 명령어를 실행한다. */
+/* `/krd` 명령어를 실행한다. */
 void run_krdict_command(
     struct discord *client,
     const struct discord_interaction *event
@@ -119,13 +133,13 @@ void run_krdict_command(
 
 /* | `papago` 모듈 함수... | */
 
-/* `papago` 모듈 명령어를 생성한다. */
+/* `/ppg` 명령어를 생성한다. */
 void create_papago_command(struct discord *client);
 
-/* `papago` 모듈 명령어에 할당된 메모리를 해제한다. */
+/* `/ppg` 모듈 명령어에 할당된 메모리를 해제한다. */
 void release_papago_command(struct discord *client);
 
-/* `papago` 모듈 명령어를 실행한다. */
+/* `/ppg` 모듈 명령어를 실행한다. */
 void run_papago_command(
     struct discord *client,
     const struct discord_interaction *event
@@ -140,6 +154,6 @@ const char *get_avatar_url(const struct discord_user *user);
 char *get_file_contents(const char *path);
 
 /* 두 문자열의 내용이 서로 같은지 확인한다. */
-bool string_equals(const char *s1, const char *s2);
+bool streq(const char *s1, const char *s2);
 
 #endif

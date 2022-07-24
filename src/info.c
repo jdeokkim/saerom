@@ -37,7 +37,7 @@ static struct discord_create_global_application_command params = {
 
 /* | `info` 모듈 함수... | */
 
-/* `info` 모듈 명령어를 생성한다. */
+/* `/info` 명령어를 생성한다. */
 void create_info_command(struct discord *client) {
     discord_create_global_application_command(
         client,
@@ -47,18 +47,16 @@ void create_info_command(struct discord *client) {
     );
 }
 
-/* `info` 모듈 명령어에 할당된 메모리를 해제한다. */
+/* `/info` 명령어에 할당된 메모리를 해제한다. */
 void release_info_command(struct discord *client) {
     /* no-op */
 }
 
-/* `info` 모듈 명령어를 실행한다. */
+/* `/info` 명령어를 실행한다. */
 void run_info_command(
     struct discord *client,
     const struct discord_interaction *event
 ) {
-    if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) return;
-    
     char cpu_usage_str[MAX_STRING_SIZE];
     char ram_usage_str[MAX_STRING_SIZE];
 
@@ -76,6 +74,26 @@ void run_info_command(
     strftime(uptime_str, sizeof(uptime_str), "%T", gmtime(&uptime_in_seconds));
     snprintf(ping_str, sizeof(ping_str), "%dms", discord_get_ping(client));
     snprintf(flags_str, sizeof(flags_str), "0x%02hhX", config->flags);
+
+    if (event == NULL) {
+        log_info("[SAEROM] %s: %s", APPLICATION_NAME, APPLICATION_DESCRIPTION);
+
+        log_info(
+            "[SAEROM] Version: %s, Uptime: %s, Latency: %s", 
+            APPLICATION_VERSION, 
+            uptime_str, 
+            flags_str
+        );
+
+        log_info(
+            "[SAEROM] CPU: %s, RAM: %s, FLAGS: %s", 
+            cpu_usage_str, 
+            ram_usage_str, 
+            flags_str
+        );
+
+        return;
+    }
 
     struct discord_embed_field fields[] = {
         {

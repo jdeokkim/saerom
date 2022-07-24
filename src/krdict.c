@@ -109,7 +109,7 @@ static void on_response(CURLV_STR res, void *user_data);
 /* 응답 결과로 받은 오류 메시지를 처리한다. */
 static void handle_error(struct krdict_context *context, const char *code);
 
-/* `krdict` 모듈 명령어를 생성한다. */
+/* `/krd` 명령어를 생성한다. */
 void create_krdict_command(struct discord *client) {
     discord_create_global_application_command(
         client,
@@ -119,17 +119,21 @@ void create_krdict_command(struct discord *client) {
     );
 }
 
-/* `krdict` 모듈 명령어에 할당된 메모리를 해제한다. */
+/* `/krd` 명령어에 할당된 메모리를 해제한다. */
 void release_krdict_command(struct discord *client) {
     /* TODO: ... */
 }
 
-/* `krdict` 모듈 명령어를 실행한다. */
+/* `/krd` 명령어를 실행한다. */
 void run_krdict_command(
     struct discord *client,
     const struct discord_interaction *event
 ) {
-    if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) {
+    if (event == NULL) {
+        log_error("[SAEROM] This command cannot be run in the console.");
+
+        return;
+    } else if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) {
         on_interaction(client, event);
 
         return;
@@ -141,8 +145,8 @@ void run_krdict_command(
         char *name = event->data->options->array[i].name;
         char *value = event->data->options->array[i].value;
 
-        if (string_equals(name, "query")) query = value;
-        else if (string_equals(name, "translated")) translated = value;
+        if (streq(name, "query")) query = value;
+        else if (streq(name, "translated")) translated = value;
     }
 
     CURLV_REQ request = { .callback = on_response };
@@ -156,7 +160,7 @@ void run_krdict_command(
     snprintf(
         buffer, 
         DISCORD_MAX_MESSAGE_LEN, 
-        string_equals(translated, "true") 
+        streq(translated, "true") 
             ? "key=%s&q=%s&advanced=y&translated=y&trans_lang=1"
             : "key=%s&q=%s&advanced=y",
         config->krdict.api_key,
@@ -174,7 +178,7 @@ void run_krdict_command(
     context->client = client;
     context->event.id = event->id;
     context->event.token = malloc(strlen(event->token) + 1);
-    context->translated = string_equals(translated, "true");
+    context->translated = streq(translated, "true");
 
     strcpy(context->event.token, event->token);
 
@@ -397,7 +401,7 @@ static void on_response(CURLV_STR res, void *user_data) {
             case YXML_ELEMEND:
                 *ptr = 0;
 
-                if (string_equals(parser->elem, "error")) {
+                if (streq(parser->elem, "error")) {
                     handle_error(context, content);
 
                     free(parser);
@@ -405,12 +409,12 @@ static void on_response(CURLV_STR res, void *user_data) {
                     return;
                 }
 
-                if (string_equals(parser->elem, "channel")) {
-                    if (string_equals(elem, "total")) {
+                if (streq(parser->elem, "channel")) {
+                    if (streq(elem, "total")) {
                         total = atoi(content);
 
                         if (total <= 0) break;
-                    } else if (string_equals(elem, "num")) {
+                    } else if (streq(elem, "num")) {
                         num = atoi(content);
 
                         if (total > num) total = num;
@@ -419,13 +423,13 @@ static void on_response(CURLV_STR res, void *user_data) {
                     }
                 }
 
-                if (string_equals(elem, "word")) {
+                if (streq(elem, "word")) {
                     strncpy(item.word, content, sizeof(item.word));
-                } else if (string_equals(elem, "origin")) {
+                } else if (streq(elem, "origin")) {
                     strncpy(item.origin, content, sizeof(item.origin));
-                } else if (string_equals(elem, "pos")) {
+                } else if (streq(elem, "pos")) {
                     strncpy(item.pos, content, sizeof(item.pos));
-                } else if (string_equals(elem, "link")) {
+                } else if (streq(elem, "link")) {
                     strncpy(item.link, content, sizeof(item.link));
 
                     if (strlen(item.origin) > 0) {
@@ -450,9 +454,9 @@ static void on_response(CURLV_STR res, void *user_data) {
                     }
 
                     strcat(buffer, item.entry);
-                } else if (string_equals(elem, "sense_order")) {
+                } else if (streq(elem, "sense_order")) {
                     order = atoi(content);
-                } else if (string_equals(elem, "definition")) {
+                } else if (streq(elem, "definition")) {
                     if (context->translated) break;
 
                     len = strlen(buffer);
@@ -473,7 +477,7 @@ static void on_response(CURLV_STR res, void *user_data) {
                         "%s\n\n",
                         content
                     );
-                } else if (string_equals(elem, "trans_word")) {
+                } else if (streq(elem, "trans_word")) {
                     if (order >= KRDICT_MAX_ORDER_COUNT) break;
 
                     len = strlen(buffer);
@@ -485,7 +489,7 @@ static void on_response(CURLV_STR res, void *user_data) {
                         order,
                         content
                     );
-                } else if (string_equals(elem, "trans_dfn")) {
+                } else if (streq(elem, "trans_dfn")) {
                     if (order >= KRDICT_MAX_ORDER_COUNT) break;
 
                     len = strlen(buffer);

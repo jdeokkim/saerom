@@ -103,7 +103,7 @@ static void on_response(CURLV_STR res, void *user_data);
 /* 응답 결과로 받은 오류 메시지를 처리한다. */
 static void handle_error(struct papago_context *context, const char *code);
 
-/* `papago` 모듈 명령어를 생성한다. */
+/* `/ppg` 명령어를 생성한다. */
 void create_papago_command(struct discord *client) {
     discord_create_global_application_command(
         client,
@@ -113,17 +113,21 @@ void create_papago_command(struct discord *client) {
     );
 }
 
-/* `papago` 모듈 명령어에 할당된 메모리를 해제한다. */
+/* `/ppg` 명령어에 할당된 메모리를 해제한다. */
 void release_papago_command(struct discord *client) {
     /* no-op */
 }
 
-/* `papago` 모듈 명령어를 실행한다. */
+/* `/ppg` 명령어를 실행한다. */
 void run_papago_command(
     struct discord *client,
     const struct discord_interaction *event
 ) {
-    if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) return;
+    if (event == NULL) {
+        log_error("[SAEROM] This command cannot be run in the console.");
+
+        return;
+    }
     
     char *text = "", *source = "ko", *target = "en";
 
@@ -131,9 +135,9 @@ void run_papago_command(
         char *name = event->data->options->array[i].name;
         char *value = event->data->options->array[i].value;
 
-        if (string_equals(name, "text")) text = value;
-        else if (string_equals(name, "source")) source = value;
-        else if (string_equals(name, "target")) target = value;
+        if (streq(name, "text")) text = value;
+        else if (streq(name, "source")) source = value;
+        else if (streq(name, "target")) target = value;
     }
 
     CURLV_REQ request = { .callback = on_response };
@@ -239,15 +243,15 @@ static void on_response(CURLV_STR res, void *user_data) {
     JsonNode *i = NULL;
 
     json_foreach(i, node) {
-        if (string_equals(i->key, "srcLangType")) {
+        if (streq(i->key, "srcLangType")) {
             snprintf(source_field_name, MAX_STRING_SIZE, "Source (%s)", i->string_);
 
             fields[0].name = source_field_name;
-        } else if (string_equals(i->key, "tarLangType")) {
+        } else if (streq(i->key, "tarLangType")) {
             snprintf(target_field_name, MAX_STRING_SIZE, "Target (%s)", i->string_);
 
             fields[1].name = target_field_name;
-        } else if (string_equals(i->key, "translatedText")) {
+        } else if (streq(i->key, "translatedText")) {
             fields[1].value = i->string_;
         }
     }
@@ -305,13 +309,13 @@ static void handle_error(struct papago_context *context, const char *code) {
         }
     };
     
-    if (string_equals(code, "024"))
+    if (streq(code, "024"))
         embeds[0].description = "Invalid client id or client secret given, "
                                 "please check your configuration file.";
-    else if (string_equals(code, "N2MT05"))
+    else if (streq(code, "N2MT05"))
         embeds[0].description = "Target language must not be the same as the "
                                 "source language.";
-    else if (string_equals(code, "N2MT08"))
+    else if (streq(code, "N2MT08"))
         embeds[0].description = "The length of the `text` parameter is too long.";
     else
         embeds[0].description = "An unknown error has occured while processing "

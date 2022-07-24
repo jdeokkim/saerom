@@ -31,19 +31,35 @@
 /* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
 void *read_input(void *arg) {
     struct discord *client = arg;
+    struct sr_command *commands = NULL;
 
-    char buffer[MAX_COMMAND_SIZE];
+    char context[MAX_COMMAND_SIZE];
+    
+    int commands_len = 0;
+
+    commands = (struct sr_command *) get_commands(&commands_len);
 
     for (;;) {
-        memset(buffer, 0, sizeof(buffer));
+        memset(context, 0, sizeof(context));
 
-        if (fgets(buffer, sizeof(buffer), stdin)) ;
+        if (fgets(context, sizeof(context), stdin)) ;
 
-        buffer[strcspn(buffer, "\r\n")] = 0;
+        context[strcspn(context, "\r\n")] = 0;
 
-        if (*buffer == '\0') continue;
+        if (*context == '\0') continue;
 
-        /* TODO: ... */
+        bool run_success = false;
+
+        for (int i = 0; i < commands_len; i++) {
+            if (streq(context, commands[i].name)) {
+                commands[i].on_run(client, NULL);
+
+                run_success = true;
+            }
+        }
+
+        if (!run_success) 
+            log_error("[SAEROM] Command not found: `/%s`", context);
     }
 
     pthread_exit(NULL);

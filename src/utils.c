@@ -87,6 +87,6 @@ char *get_file_contents(const char *path) {
 }
 
 /* 두 문자열의 내용이 서로 같은지 확인한다. */
-bool string_equals(const char *s1, const char *s2) {
+bool streq(const char *s1, const char *s2) {
     return strncmp(s1, s2, MAX_STRING_SIZE) == 0;
 }
