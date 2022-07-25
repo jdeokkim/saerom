@@ -110,7 +110,7 @@ static void handle_error(struct krdict_context *context, const char *code);
 void create_krdict_command(struct discord *client) {
     discord_create_global_application_command(
         client,
-        APPLICATION_ID,
+        get_application_id(),
         &params,
         NULL
     );
@@ -538,7 +538,7 @@ static void on_response(CURLV_STR res, void *user_data) {
 
     discord_edit_original_interaction_response(
         context->client,
-        APPLICATION_ID,
+        get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .components = &(struct discord_components){
@@ -584,7 +584,7 @@ static void handle_error(struct krdict_context *context, const char *code) {
 
     discord_edit_original_interaction_response(
         context->client,
-        APPLICATION_ID,
+        get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {

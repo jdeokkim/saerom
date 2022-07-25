@@ -30,7 +30,6 @@
 #define APPLICATION_VERSION      "v0.2.0-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
-#define APPLICATION_ID            986954825176596498
 
 #define DEVELOPER_NAME           "Jaedeok Kim"
 #define DEVELOPER_ICON_URL       "https://avatars.githubusercontent.com/u/28700668"
@@ -85,6 +84,9 @@ const struct sr_command *get_commands(int *len);
 
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void);
+
+/* Discord 봇의 애플리케이션 고유 번호를 반환한다. */
+u64snowflake get_application_id(void);
 
 /* Discord 봇 관리자의 고유 번호를 반환한다. */
 u64snowflake get_owner_id(void);

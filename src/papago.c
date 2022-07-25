@@ -107,7 +107,7 @@ static void handle_error(struct papago_context *context, const char *code);
 void create_papago_command(struct discord *client) {
     discord_create_global_application_command(
         client,
-        APPLICATION_ID,
+        get_application_id(),
         &params,
         NULL
     );
@@ -272,7 +272,7 @@ static void on_response(CURLV_STR res, void *user_data) {
 
     discord_edit_original_interaction_response(
         context->client,
-        APPLICATION_ID,
+        get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {
@@ -323,7 +323,7 @@ static void handle_error(struct papago_context *context, const char *code) {
 
     discord_edit_original_interaction_response(
         context->client,
-        APPLICATION_ID,
+        get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {

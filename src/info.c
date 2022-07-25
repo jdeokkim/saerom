@@ -41,7 +41,7 @@ static struct discord_create_global_application_command params = {
 void create_info_command(struct discord *client) {
     discord_create_global_application_command(
         client,
-        APPLICATION_ID,
+        get_application_id(),
         &params,
         NULL
     );

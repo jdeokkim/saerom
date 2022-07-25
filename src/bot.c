@@ -15,6 +15,7 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
 #include <string.h>
 #include <sigar.h>
 
@@ -68,6 +69,9 @@ static struct discord *client;
 
 /* Discord 봇의 환경 설정. */
 static struct sr_config config;
+
+/* Discord 봇의 애플리케이션 고유 번호. */
+static u64snowflake application_id;
 
 /* Discord 봇 관리자의 고유 번호. */
 static u64snowflake owner_id;
@@ -151,6 +155,11 @@ const struct sr_command *get_commands(int *len) {
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void) {
     return (void *) curlv;
+}
+
+/* Discord 봇의 애플리케이션 고유 번호를 반환한다. */
+u64snowflake get_application_id(void) {
+    return application_id;
 }
 
 /* Discord 봇 관리자의 고유 번호를 반환한다. */
@@ -321,6 +330,16 @@ static void sr_config_init(void) {
     sigar_open(&sigar);
 
     struct ccord_szbuf_readonly field = discord_config_get_field(
+        client, (char *[2]) { "discord", "application_id" }, 2
+    );
+
+    char buffer[MAX_STRING_SIZE];
+
+    strncpy(buffer, field.start, field.size);
+
+    application_id = strtoull(buffer, NULL, 10);
+
+    field = discord_config_get_field(
         client, (char *[3]) { "saerom", "krdict", "enable" }, 3
     );
 
