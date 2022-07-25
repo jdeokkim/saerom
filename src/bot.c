@@ -45,6 +45,12 @@ static const struct sr_command commands[] = {
         .on_run = run_krdict_command
     },
     {
+        .name = "msg",
+        .on_create = create_msg_command,
+        .on_release = release_msg_command,
+        .on_run = run_msg_command
+    },
+    {
         .name = "ppg",
         .on_create = create_papago_command,
         .on_release = release_papago_command,
@@ -145,13 +151,6 @@ void deinit_bot(void) {
     ccord_global_cleanup();
 }
 
-/* Discord 봇의 명령어 목록을 반환한다. */
-const struct sr_command *get_commands(int *len) {
-    if (len != NULL) *len = sizeof(commands) / sizeof(*commands);
-
-    return commands;
-}
-
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void) {
     return (void *) curlv;
@@ -170,6 +169,13 @@ u64snowflake get_owner_id(void) {
 /* Discord 봇의 환경 설정 정보를 반환한다. */
 struct sr_config *get_sr_config(void) {
     return &config;
+}
+
+/* Discord 봇의 명령어 목록을 반환한다. */
+const struct sr_command *get_commands(int *len) {
+    if (len != NULL) *len = sizeof(commands) / sizeof(*commands);
+
+    return commands;
 }
 
 /* Discord 봇의 CPU 사용량 (단위: 퍼센트)을 반환한다. */

@@ -79,7 +79,7 @@ static struct discord_create_global_application_command params = {
 /* | `krdict` 모듈 함수... | */
 
 /* 개인 메시지 전송에 성공했을 때 호출되는 함수. */
-static void on_message_complete(
+static void on_message_success(
     struct discord *client, 
     struct discord_response *resp,
     const struct discord_message *msg
@@ -91,14 +91,14 @@ static void on_message_failure(
     struct discord_response *resp
 );
 
+/* 개인 메시지 전송이 끝났을 때 호출되는 함수. */
+static void on_message_complete(struct discord *client, void *data);
+
 /* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
 static void on_interaction(
     struct discord *client,
     const struct discord_interaction *event
 );
-
-/* 컴포넌트와의 상호 작용이 끝났을 때 호출되는 함수. */
-static void on_interaction_cleanup(struct discord *client, void *data);
 
 /* 요청 URL에서 응답을 받았을 때 호출되는 함수. */
 static void on_response(CURLV_STR res, void *user_data);
@@ -195,7 +195,7 @@ void run_krdict_command(
 }
 
 /* 개인 메시지 전송에 성공했을 때 호출되는 함수. */
-static void on_message_complete(
+static void on_message_success(
     struct discord *client, 
     struct discord_response *resp,
     const struct discord_message *msg
@@ -276,6 +276,14 @@ static void on_message_failure(
     );
 }
 
+/* 개인 메시지 전송이 끝났을 때 호출되는 함수. */
+static void on_message_complete(struct discord *client, void *data) {
+    struct discord_interaction *event = data;
+
+    free(event->token);
+    free(event);
+}
+
 /* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
 static void on_interaction(
     struct discord *client,
@@ -301,12 +309,6 @@ static void on_interaction(
 
     discord_channel_cleanup(&ret_channel);
 
-    log_info(
-        "[SAEROM] Attempting to send a direct message to `%s#%s`",
-        user->username,
-        user->discriminator
-    );
-
     struct discord_interaction *event_clone = malloc(
         sizeof(struct discord_interaction)
     );
@@ -324,19 +326,11 @@ static void on_interaction(
         },
         &(struct discord_ret_message) {
             .data = event_clone,
-            .cleanup = on_interaction_cleanup,
-            .done = on_message_complete,
+            .cleanup = on_message_complete,
+            .done = on_message_success,
             .fail = on_message_failure
         }
     );
-}
-
-/* 컴포넌트와의 상호 작용이 끝났을 때 호출되는 함수. */
-static void on_interaction_cleanup(struct discord *client, void *data) {
-    struct discord_interaction *event = data;
-
-    free(event->token);
-    free(event);
 }
 
 /* 요청 URL에서 응답을 받았을 때 호출되는 함수. */

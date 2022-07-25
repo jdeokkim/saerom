@@ -27,7 +27,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.2.0-dev"
+#define APPLICATION_VERSION      "v0.2.0"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -53,7 +53,7 @@ struct sr_config {
 
 /* Discord 봇의 명령어를 나타내는 구조체. */
 struct sr_command {
-    char *name;
+    const char *name;
     void (*on_create)(struct discord *client);
     void (*on_release)(struct discord *client);
     void (*on_run)(
@@ -79,9 +79,6 @@ void run_bot(void);
 /* Discord 봇에 할당된 메모리를 해제한다. */
 void deinit_bot(void);
 
-/* Discord 봇의 명령어 목록을 반환한다. */
-const struct sr_command *get_commands(int *len);
-
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void);
 
@@ -93,6 +90,9 @@ u64snowflake get_owner_id(void);
 
 /* Discord 봇의 환경 설정 정보를 반환한다. */
 struct sr_config *get_sr_config(void);
+
+/* Discord 봇의 명령어 목록을 반환한다. */
+const struct sr_command *get_commands(int *len);
 
 /* Discord 봇의 CPU 사용량 (단위: 퍼센트)을 반환한다. */
 double get_cpu_usage(void);
@@ -132,6 +132,18 @@ void run_krdict_command(
 );
 
 /* | `owner` 모듈 함수... | */
+
+/* `/msg` 명령어를 생성한다. */
+void create_msg_command(struct discord *client);
+
+/* `/msg` 명령어에 할당된 메모리를 해제한다. */
+void release_msg_command(struct discord *client);
+
+/* `/msg` 명령어를 실행한다. */
+void run_msg_command(
+    struct discord *client,
+    const struct discord_interaction *event
+);
 
 /* `/stop` 명령어를 생성한다. */
 void create_stop_command(struct discord *client);
