@@ -19,13 +19,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pthread.h>
 #include <json.h>
 
 #include "saerom.h"
 
 /* | `utils` 모듈 매크로 정의... | */
 
-#define DISCORD_MAGIC_NUMBER 5
+#define DISCORD_MAGIC_NUMBER  5
+
+#define MAX_COMMAND_SIZE      (MAX_STRING_SIZE + DISCORD_MAX_MESSAGE_LEN)
 
 /* | `utils` 모듈 함수... | */
 
@@ -84,6 +87,43 @@ char *get_file_contents(const char *path) {
     fclose(fp);
 
     return buffer;
+}
+
+/* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
+void *read_input(void *arg) {
+    struct discord *client = arg;
+    struct sr_command *commands = NULL;
+
+    char context[MAX_COMMAND_SIZE];
+    
+    int commands_len = 0;
+
+    commands = (struct sr_command *) get_commands(&commands_len);
+
+    for (;;) {
+        memset(context, 0, sizeof(context));
+
+        if (fgets(context, sizeof(context), stdin)) ;
+
+        context[strcspn(context, "\r\n")] = 0;
+
+        if (*context == '\0') continue;
+
+        bool run_success = false;
+
+        for (int i = 0; i < commands_len; i++) {
+            if (streq(context, commands[i].name)) {
+                commands[i].on_run(client, NULL);
+
+                run_success = true;
+            }
+        }
+
+        if (!run_success) 
+            log_error("[SAEROM] Command not found: `/%s`", context);
+    }
+
+    pthread_exit(NULL);
 }
 
 /* 두 문자열의 내용이 서로 같은지 확인한다. */

@@ -86,6 +86,9 @@ const struct sr_command *get_commands(int *len);
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void);
 
+/* Discord 봇 관리자의 고유 번호를 반환한다. */
+u64snowflake get_owner_id(void);
+
 /* Discord 봇의 환경 설정 정보를 반환한다. */
 struct sr_config *get_sr_config(void);
 
@@ -112,11 +115,6 @@ void run_info_command(
     const struct discord_interaction *event
 );
 
-/* | `input` 모듈 함수... | */
-
-/* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
-void *read_input(void *arg);
-
 /* | `krdict` 모듈 함수... | */
 
 /* `/krd` 명령어를 생성한다. */
@@ -127,6 +125,20 @@ void release_krdict_command(struct discord *client);
 
 /* `/krd` 명령어를 실행한다. */
 void run_krdict_command(
+    struct discord *client,
+    const struct discord_interaction *event
+);
+
+/* | `owner` 모듈 함수... | */
+
+/* `/stop` 명령어를 생성한다. */
+void create_stop_command(struct discord *client);
+
+/* `/stop` 명령어에 할당된 메모리를 해제한다. */
+void release_stop_command(struct discord *client);
+
+/* `/stop` 명령어를 실행한다. */
+void run_stop_command(
     struct discord *client,
     const struct discord_interaction *event
 );
@@ -152,6 +164,9 @@ const char *get_avatar_url(const struct discord_user *user);
 
 /* 주어진 경로에 위치한 파일의 내용을 반환한다. */
 char *get_file_contents(const char *path);
+
+/* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
+void *read_input(void *arg);
 
 /* 두 문자열의 내용이 서로 같은지 확인한다. */
 bool streq(const char *s1, const char *s2);

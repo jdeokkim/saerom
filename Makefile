@@ -40,9 +40,9 @@ INCLUDE_PATH += $(SOURCE_PATH)/external
 SOURCES := \
 	$(SOURCE_PATH)/bot.c    \
 	$(SOURCE_PATH)/info.c   \
-	$(SOURCE_PATH)/input.c  \
 	$(SOURCE_PATH)/json.c   \
 	$(SOURCE_PATH)/krdict.c \
+	$(SOURCE_PATH)/owner.c  \
 	$(SOURCE_PATH)/papago.c \
 	$(SOURCE_PATH)/utils.c  \
 	$(SOURCE_PATH)/yxml.c   \

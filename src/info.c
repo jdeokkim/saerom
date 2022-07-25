@@ -21,10 +21,10 @@
 
 /* | `info` 모듈 상수 및 변수... | */
 
-/* `info` 모듈 명령어의 매개 변수. */
+/* `/info` 명령어의 매개 변수. */
 static struct discord_application_command_option options[] = { };
 
-/* `info` 모듈 명령어에 대한 정보. */
+/* `/info` 명령어에 대한 정보. */
 static struct discord_create_global_application_command params = {
     .name = "info",
     .description = "Show information about this bot",

@@ -27,7 +27,7 @@
 
 /* | `papago` 모듈 자료형 정의... | */
 
-/* `papago` 모듈 명령어 실행 정보를 나타내는 구조체. */
+/* `/ppg` 명령어의 실행 정보를 나타내는 구조체. */
 struct papago_context {
     struct discord *client;
     struct {
@@ -39,7 +39,7 @@ struct papago_context {
 
 /* | `papago` 모듈 상수 및 변수... | */
 
-/* `papago` 모듈 명령어의 원본 언어 및 목적 언어 목록.*/
+/* `/ppg` 명령어의 원본 언어 및 목적 언어 목록.*/
 static struct discord_application_command_option_choice languages[] = {
     { .name = "Chinese (Simplified)",  .value = "\"zh-CN\"" },
     { .name = "Chinese (Traditional)", .value = "\"zh-TW\"" },
@@ -56,7 +56,7 @@ static struct discord_application_command_option_choice languages[] = {
     { .name = "Vietnamese",            .value = "\"vi\""    }
 };
 
-/* `papago` 모듈 명령어의 매개 변수. */
+/* `/ppg` 명령어의 매개 변수. */
 static struct discord_application_command_option options[] = {
     {
         .type = DISCORD_APPLICATION_OPTION_STRING,
@@ -84,7 +84,7 @@ static struct discord_application_command_option options[] = {
     }
 };
 
-/* `papago` 모듈 명령어에 대한 정보. */
+/* `/ppg` 명령어에 대한 정보. */
 static struct discord_create_global_application_command params = {
     .name = "ppg",
     .description = "Translate the given text between two languages using NAVER™ Papago NMT API",

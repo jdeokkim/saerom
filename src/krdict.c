@@ -29,7 +29,7 @@
 
 /* | `krdict` 모듈 자료형 정의... | */
 
-/* `krdict` 모듈 명령어 실행 정보를 나타내는 구조체. */
+/* `/krd` 명령어의 실행 정보를 나타내는 구조체. */
 struct krdict_context {
     struct discord *client;
     struct {
@@ -39,7 +39,7 @@ struct krdict_context {
     bool translated;
 };
 
-/* `krdict` 모듈 명령어의 개별 검색 결과를 나타내는 구조체. */
+/* `/krd` 명령어의 개별 검색 결과를 나타내는 구조체. */
 struct krdict_item {
     char word[MAX_STRING_SIZE];
     char origin[MAX_STRING_SIZE];
@@ -50,7 +50,7 @@ struct krdict_item {
 
 /* | `krdict` 모듈 상수 및 변수... | */
 
-/* `krdict` 모듈 명령어의 매개 변수. */
+/* `/krd` 명령어의 매개 변수. */
 static struct discord_application_command_option options[] = {
     {
         .type = DISCORD_APPLICATION_OPTION_STRING,
@@ -65,7 +65,7 @@ static struct discord_application_command_option options[] = {
     }
 };
 
-/* `krdict` 모듈 명령어에 대한 정보. */
+/* `/krd` 명령어에 대한 정보. */
 static struct discord_create_global_application_command params = {
     .name = "krd",
     .description = "Search the given text in the Basic Korean Dictionary by the National Institute of Korean Language",
@@ -79,14 +79,14 @@ static struct discord_create_global_application_command params = {
 /* | `krdict` 모듈 함수... | */
 
 /* 개인 메시지 전송에 성공했을 때 호출되는 함수. */
-static void on_direct_message_success(
+static void on_message_complete(
     struct discord *client, 
     struct discord_response *resp,
     const struct discord_message *msg
 );
 
 /* 개인 메시지 전송에 실패했을 때 호출되는 함수. */
-static void on_direct_message_failure(
+static void on_message_failure(
     struct discord *client, 
     struct discord_response *resp
 );
@@ -98,10 +98,7 @@ static void on_interaction(
 );
 
 /* 컴포넌트와의 상호 작용이 끝났을 때 호출되는 함수. */
-static void on_interaction_complete(
-    struct discord *client, 
-    void *data
-);
+static void on_interaction_cleanup(struct discord *client, void *data);
 
 /* 요청 URL에서 응답을 받았을 때 호출되는 함수. */
 static void on_response(CURLV_STR res, void *user_data);
@@ -198,7 +195,7 @@ void run_krdict_command(
 }
 
 /* 개인 메시지 전송에 성공했을 때 호출되는 함수. */
-static void on_direct_message_success(
+static void on_message_complete(
     struct discord *client, 
     struct discord_response *resp,
     const struct discord_message *msg
@@ -239,7 +236,7 @@ static void on_direct_message_success(
 }
 
 /* 개인 메시지 전송에 실패했을 때 호출되는 함수. */
-static void on_direct_message_failure(
+static void on_message_failure(
     struct discord *client, 
     struct discord_response *resp
 ) {
@@ -327,18 +324,15 @@ static void on_interaction(
         },
         &(struct discord_ret_message) {
             .data = event_clone,
-            .cleanup = on_interaction_complete,
-            .done = on_direct_message_success,
-            .fail = on_direct_message_failure
+            .cleanup = on_interaction_cleanup,
+            .done = on_message_complete,
+            .fail = on_message_failure
         }
     );
 }
 
 /* 컴포넌트와의 상호 작용이 끝났을 때 호출되는 함수. */
-static void on_interaction_complete(
-    struct discord *client, 
-    void *data
-) {
+static void on_interaction_cleanup(struct discord *client, void *data) {
     struct discord_interaction *event = data;
 
     free(event->token);

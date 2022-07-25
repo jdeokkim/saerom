@@ -48,6 +48,12 @@ static const struct sr_command commands[] = {
         .on_create = create_papago_command,
         .on_release = release_papago_command,
         .on_run = run_papago_command
+    },
+    {
+        .name = "stop",
+        .on_create = create_stop_command,
+        .on_release = release_stop_command,
+        .on_run = run_stop_command
     }
 };
 
@@ -63,8 +69,11 @@ static struct discord *client;
 /* Discord 봇의 환경 설정. */
 static struct sr_config config;
 
+/* Discord 봇 관리자의 고유 번호. */
+static u64snowflake owner_id;
+
 /* Discord 봇의 시작 시간. */
-static uint64_t old_timestamp;
+static uint64_t timestamp;
 
 /* | `bot` 모듈 함수... | */
 
@@ -105,6 +114,7 @@ void init_bot(int argc, char *argv[]) {
     client = discord_config_init((argc > 1) ? argv[1] : CONFIG_PATH);
 
     sr_config_init();
+    sr_input_reader_init();
 
     discord_set_on_idle(client, on_idle);
     discord_set_on_ready(client, on_ready);
@@ -123,6 +133,8 @@ void deinit_bot(void) {
     release_commands(client);
 
     sr_config_cleanup();
+    
+    log_info("[SAEROM] Cleaning up global resources");
 
     discord_cleanup(client);
 
@@ -139,6 +151,11 @@ const struct sr_command *get_commands(int *len) {
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void) {
     return (void *) curlv;
+}
+
+/* Discord 봇 관리자의 고유 번호를 반환한다. */
+u64snowflake get_owner_id(void) {
+    return owner_id;
 }
 
 /* Discord 봇의 환경 설정 정보를 반환한다. */
@@ -176,7 +193,7 @@ double get_ram_usage(void) {
 
 /* Discord 봇의 작동 시간 (단위: 밀리초)을 반환한다. */
 uint64_t get_uptime(void) {
-    return discord_timestamp(client) - old_timestamp;
+    return discord_timestamp(client) - timestamp;
 }
 
 /* Discord 봇이 실행 중일 때 주기적으로 호출된다.  */
@@ -212,7 +229,7 @@ static void on_ready(
         },
     };
 
-    old_timestamp = discord_timestamp(client);
+    timestamp = discord_timestamp(client);
 
     struct discord_presence_update status = {
         .activities = &(struct discord_activities) {
@@ -221,7 +238,7 @@ static void on_ready(
         },
         .status = "online",
         .afk = false,
-        .since = old_timestamp
+        .since = timestamp
     };
 
     discord_update_presence(client, &status);
@@ -286,6 +303,15 @@ static void on_interaction_create(
     }
 }
 
+/* (Discord 봇의 추가 정보를 초기화한다.) */
+static void _sr_config_init(
+    struct discord *client, 
+    struct discord_response *resp, 
+    const struct discord_application *ret
+) {
+    owner_id = ret->owner->id;
+}
+
 /* Discord 봇의 추가 정보를 초기화한다. */
 static void sr_config_init(void) {
     if (client == NULL) return;
@@ -328,7 +354,12 @@ static void sr_config_init(void) {
         strncpy(config.papago.client_secret, field.start, field.size);
     }
 
-    sr_input_reader_init();
+    discord_get_current_bot_application_information(
+        client, 
+        &(struct discord_ret_application) {
+            .done = _sr_config_init
+        }
+    );
 }
 
 /* Discord 봇의 추가 정보에 할당된 메모리를 해제한다. */
@@ -347,8 +378,6 @@ static void sr_input_reader_init(void) {
 
     pthread_t handle;
 
-    log_info("[SAEROM] Creating a detached input reader thread `~%ld`", handle);
-
     pthread_create(&handle, &attributes, &read_input, client);
 
     pthread_attr_destroy(&attributes);
@@ -356,9 +385,9 @@ static void sr_input_reader_init(void) {
 
 /* Discord 봇의 명령어들을 생성한다. */
 static void create_commands(struct discord *client) {
-    int commands_len = sizeof(commands) / sizeof(*commands);
+    const int commands_len = sizeof(commands) / sizeof(*commands);
 
-    log_info("[SAEROM] Creating %d bot command(s)", commands_len);
+    log_info("[SAEROM] Creating %d global application command(s)", commands_len);
 
     for (int i = 0; i < commands_len; i++) {
         if (streq(commands[i].name, "krd")
@@ -374,9 +403,9 @@ static void create_commands(struct discord *client) {
 
 /* Discord 봇의 명령어들에 할당된 메모리를 해제한다. */
 static void release_commands(struct discord *client) {
-    int commands_len = sizeof(commands) / sizeof(*commands);
+    const int commands_len = sizeof(commands) / sizeof(*commands);
 
-    log_info("[SAEROM] Releasing %d bot command(s)", commands_len);
+    log_info("[SAEROM] Releasing %d global application command(s)", commands_len);
 
     for (int i = 0; i < commands_len; i++) {
         if (streq(commands[i].name, "krd")
