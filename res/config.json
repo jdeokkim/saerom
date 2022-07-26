@@ -22,7 +22,8 @@
   "saerom": {
     "krdict": {
       "enable": true,
-      "api_key": "YOUR-API-KEY"
+      "krd_api_key": "YOUR-API-KEY",
+      "urms_api_key": "YOUR-API-KEY"
     },
     "papago": {
       "enable": true,

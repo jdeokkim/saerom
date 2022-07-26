@@ -46,7 +46,7 @@ static void sr_shutdown(
 );
 
 /* `/msg` 명령어를 생성한다. */
-void create_msg_command(struct discord *client) {
+void sr_command_msg_init(struct discord *client) {
     int integers[] = { DISCORD_CHANNEL_GUILD_TEXT, DISCORD_CHANNEL_DM };
 
     struct discord_application_command_option options[] = { 
@@ -92,12 +92,12 @@ void create_msg_command(struct discord *client) {
 }
 
 /* `/msg` 명령어에 할당된 메모리를 해제한다. */
-void release_msg_command(struct discord *client) {
+void sr_command_msg_cleanup(struct discord *client) {
     /* no-op */
 }
 
 /* `/msg` 명령어를 실행한다. */
-void run_msg_command(
+void sr_command_msg_run(
     struct discord *client,
     const struct discord_interaction *event
 ) {
@@ -209,7 +209,7 @@ void run_msg_command(
 }
 
 /* `/stop` 명령어를 생성한다. */
-void create_stop_command(struct discord *client) {
+void sr_command_stop_init(struct discord *client) {
     struct discord_create_global_application_command params = {
         .name = "stop",
         .description = "Shut down the bot",
@@ -225,12 +225,12 @@ void create_stop_command(struct discord *client) {
 }
 
 /* `/stop` 명령어에 할당된 메모리를 해제한다. */
-void release_stop_command(struct discord *client) {
+void sr_command_stop_cleanup(struct discord *client) {
     /* no-op */
 }
 
 /* (`/stop` 명령어를 실행한다.) */
-static void _run_stop_command(
+static void _sr_command_stop_run(
     struct discord *client, 
     struct discord_response *resp, 
     const struct discord_interaction_response *ret
@@ -239,7 +239,7 @@ static void _run_stop_command(
 }
 
 /* `/stop` 명령어를 실행한다. */
-void run_stop_command(
+void sr_command_stop_run(
     struct discord *client,
     const struct discord_interaction *event
 ) {
@@ -317,7 +317,7 @@ void run_stop_command(
             event->token, 
             &params, 
             &(struct discord_ret_interaction_response) {
-                .done = _run_stop_command
+                .done = _sr_command_stop_run
             }
         );
 

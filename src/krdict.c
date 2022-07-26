@@ -23,9 +23,8 @@
 
 #include "saerom.h"
 
-#define KRDICT_REQUEST_URL      "https://krdict.korean.go.kr/api/search"
-
-#define KRDICT_MAX_ORDER_COUNT  8
+#define KRDICT_REQUEST_URL    "https://krdict.korean.go.kr/api/search"
+#define OPENDICT_REQUEST_URL  "https://opendict.korean.go.kr/api/search"
 
 /* | `krdict` 모듈 자료형 정의... | */
 
@@ -50,6 +49,12 @@ struct krdict_item {
 
 /* | `krdict` 모듈 상수 및 변수... | */
 
+/* `/krd` 명령어의 검색 대상 목록. */
+static struct discord_application_command_option_choice choices[] = {
+    { .name = "Definitions", .value = "\"word\"" },
+    { .name = "Examples",    .value = "\"exam\"" }
+};
+
 /* `/krd` 명령어의 매개 변수. */
 static struct discord_application_command_option options[] = {
     {
@@ -57,6 +62,15 @@ static struct discord_application_command_option options[] = {
         .name = "query",
         .description = "The text you're looking up",
         .required = true
+    },
+    {
+        .type = DISCORD_APPLICATION_OPTION_STRING,
+        .name = "part",
+        .description = "Which part of each entry to be returned (if `exam`, the `translated` option will be ignored)",
+        .choices = &(struct discord_application_command_option_choices) {
+            .size = sizeof(choices) / sizeof(*choices),
+            .array = choices
+        }
     },
     {
         .type = DISCORD_APPLICATION_OPTION_BOOLEAN,
@@ -68,7 +82,7 @@ static struct discord_application_command_option options[] = {
 /* `/krd` 명령어에 대한 정보. */
 static struct discord_create_global_application_command params = {
     .name = "krd",
-    .description = "Search the given text in the Basic Korean Dictionary by the National Institute of Korean Language",
+    .description = "Search the given text in the dictionaries published by the National Institute of Korean Language",
     .default_permission = true,
     .options = &(struct discord_application_command_options) {
         .size = sizeof(options) / sizeof(*options),
@@ -107,7 +121,7 @@ static void on_response(CURLV_STR res, void *user_data);
 static void handle_error(struct krdict_context *context, const char *code);
 
 /* `/krd` 명령어를 생성한다. */
-void create_krdict_command(struct discord *client) {
+void sr_command_krdict_init(struct discord *client) {
     discord_create_global_application_command(
         client,
         sr_config_get_application_id(),
@@ -117,12 +131,12 @@ void create_krdict_command(struct discord *client) {
 }
 
 /* `/krd` 명령어에 할당된 메모리를 해제한다. */
-void release_krdict_command(struct discord *client) {
-    /* TODO: ... */
+void sr_command_krdict_cleanup(struct discord *client) {
+    /* no-op */
 }
 
 /* `/krd` 명령어를 실행한다. */
-void run_krdict_command(
+void sr_command_krdict_run(
     struct discord *client,
     const struct discord_interaction *event
 ) {
@@ -158,7 +172,7 @@ void run_krdict_command(
         streq(translated, "true") 
             ? "key=%s&q=%s&advanced=y&translated=y&trans_lang=1"
             : "key=%s&q=%s&advanced=y",
-        sr_config_get_krdict_api_key(),
+        sr_config_get_krd_api_key(),
         query
     );
 
@@ -342,7 +356,7 @@ static void on_response(CURLV_STR res, void *user_data) {
     yxml_init(parser, parser + 1, res.len);
 
     struct krdict_context *context = (struct krdict_context *) user_data;
-    struct krdict_item item;
+    struct krdict_item item = { .word = "" };
 
     char buffer[DISCORD_EMBED_DESCRIPTION_LEN] = "";
     char content[DISCORD_MAX_MESSAGE_LEN] = "";
@@ -464,7 +478,7 @@ static void on_response(CURLV_STR res, void *user_data) {
                         content
                     );
                 } else if (streq(elem, "trans_word")) {
-                    if (order >= KRDICT_MAX_ORDER_COUNT) break;
+                    if (order >= MAX_ORDER_COUNT) break;
 
                     len = strlen(buffer);
 
@@ -476,7 +490,7 @@ static void on_response(CURLV_STR res, void *user_data) {
                         content
                     );
                 } else if (streq(elem, "trans_dfn")) {
-                    if (order >= KRDICT_MAX_ORDER_COUNT) break;
+                    if (order >= MAX_ORDER_COUNT) break;
 
                     len = strlen(buffer);
 

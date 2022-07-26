@@ -31,7 +31,7 @@ static struct discord_create_global_application_command params = {
 /* | `info` 모듈 함수... | */
 
 /* `/info` 명령어를 생성한다. */
-void create_info_command(struct discord *client) {
+void sr_command_info_init(struct discord *client) {
     discord_create_global_application_command(
         client,
         sr_config_get_application_id(),
@@ -41,12 +41,12 @@ void create_info_command(struct discord *client) {
 }
 
 /* `/info` 명령어에 할당된 메모리를 해제한다. */
-void release_info_command(struct discord *client) {
+void sr_command_info_cleanup(struct discord *client) {
     /* no-op */
 }
 
 /* `/info` 명령어를 실행한다. */
-void run_info_command(
+void sr_command_info_run(
     struct discord *client,
     const struct discord_interaction *event
 ) {

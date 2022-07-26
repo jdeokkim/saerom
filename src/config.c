@@ -33,7 +33,8 @@ struct sr_config {
         u64bitmask status;
     } flags;
     struct {
-        char api_key[MAX_STRING_SIZE];
+        char krd_api_key[MAX_STRING_SIZE];
+        char urms_api_key[MAX_STRING_SIZE];
     } krdict;
     struct {
         char client_id[MAX_STRING_SIZE];
@@ -74,7 +75,7 @@ void sr_config_init(void) {
         client, (char *[2]) { "discord", "application_id" }, 2
     );
 
-    char buffer[MAX_STRING_SIZE];
+    char buffer[MAX_STRING_SIZE] = "";
 
     strncpy(buffer, field.start, field.size);
 
@@ -96,10 +97,16 @@ void sr_config_init(void) {
         config.flags.module |= SR_MODULE_KRDICT;
 
         field = discord_config_get_field(
-            client, (char *[3]) { "saerom", "krdict", "api_key" }, 3
+            client, (char *[3]) { "saerom", "krdict", "krd_api_key" }, 3
         );
 
-        strncpy(config.krdict.api_key, field.start, field.size);
+        strncpy(config.krdict.krd_api_key, field.start, field.size);
+
+        field = discord_config_get_field(
+            client, (char *[3]) { "saerom", "krdict", "urms_api_key" }, 3
+        );
+
+        strncpy(config.krdict.urms_api_key, field.start, field.size);
 
         pthread_mutex_unlock(&config.lock);
     }
@@ -170,8 +177,13 @@ u64bitmask sr_config_get_status_flags(void) {
 }
 
 /* Discord 봇의 국립국어원 한국어기초사전 API 키를 반환한다. */
-const char *sr_config_get_krdict_api_key(void) {
-    return config.krdict.api_key;
+const char *sr_config_get_krd_api_key(void) {
+    return config.krdict.krd_api_key;
+}
+
+/* Discord 봇의 국립국어원 우리말샘 API 키를 반환한다. */
+const char *sr_config_get_urms_api_key(void) {
+    return config.krdict.urms_api_key;
 }
 
 /* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 ID를 반환한다. */

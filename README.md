@@ -12,7 +12,7 @@ A C99 Discord bot for Korean learning servers.
 | Name    | Description                                                                                                                                  |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------|
 | `/info` | Show information about this bot                                                                                                              |
-| `/krd`  | Search the given text in the [Basic Korean Dictionary](https://krdict.korean.go.kr/), published by the National Institute of Korean Language |
+| `/krd`  | Search the given text in the dictionaries ("Basic Korean Dictionary" & "Urimalsaem") published by the National Institute of Korean Language  |
 | `/ppg`  | Translate the given text between two languages using [NAVER™ Papago NMT API](https://developers.naver.com/docs/papago/README.md)             |
 
 ## Screenshots

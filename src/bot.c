@@ -33,33 +33,33 @@
 static const struct sr_command commands[] = {
     {
         .name = "info",
-        .on_create = create_info_command,
-        .on_release = release_info_command,
-        .on_run = run_info_command
+        .on_init = sr_command_info_init,
+        .on_cleanup = sr_command_info_cleanup,
+        .on_run = sr_command_info_run
     },
     {
         .name = "krd",
-        .on_create = create_krdict_command,
-        .on_release = release_krdict_command,
-        .on_run = run_krdict_command
+        .on_init = sr_command_krdict_init,
+        .on_cleanup = sr_command_krdict_cleanup,
+        .on_run = sr_command_krdict_run
     },
     {
         .name = "msg",
-        .on_create = create_msg_command,
-        .on_release = release_msg_command,
-        .on_run = run_msg_command
+        .on_init = sr_command_msg_init,
+        .on_cleanup = sr_command_msg_cleanup,
+        .on_run = sr_command_msg_run
     },
     {
         .name = "ppg",
-        .on_create = create_papago_command,
-        .on_release = release_papago_command,
-        .on_run = run_papago_command
+        .on_init = sr_command_papago_init,
+        .on_cleanup = sr_command_papago_cleanup,
+        .on_run = sr_command_papago_run
     },
     {
         .name = "stop",
-        .on_create = create_stop_command,
-        .on_release = release_stop_command,
-        .on_run = run_stop_command
+        .on_init = sr_command_stop_init,
+        .on_cleanup = sr_command_stop_cleanup,
+        .on_run = sr_command_stop_run
     }
 };
 
@@ -359,8 +359,8 @@ static void create_commands(struct discord *client) {
         if (streq(commands[i].name, "ppg")
             && !(module_flags & SR_MODULE_PAPAGO)) continue;
 
-        if (commands[i].on_create != NULL)
-            commands[i].on_create(client);
+        if (commands[i].on_init != NULL)
+            commands[i].on_init(client);
     }
 }
 
@@ -379,7 +379,7 @@ static void release_commands(struct discord *client) {
         if (streq(commands[i].name, "ppg")
             && !(module_flags & SR_MODULE_PAPAGO)) continue;
 
-        if (commands[i].on_release != NULL)
-            commands[i].on_release(client);
+        if (commands[i].on_cleanup != NULL)
+            commands[i].on_cleanup(client);
     }
 }

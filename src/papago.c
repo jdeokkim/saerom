@@ -104,7 +104,7 @@ static void on_response(CURLV_STR res, void *user_data);
 static void handle_error(struct papago_context *context, const char *code);
 
 /* `/ppg` 명령어를 생성한다. */
-void create_papago_command(struct discord *client) {
+void sr_command_papago_init(struct discord *client) {
     discord_create_global_application_command(
         client,
         sr_config_get_application_id(),
@@ -114,12 +114,12 @@ void create_papago_command(struct discord *client) {
 }
 
 /* `/ppg` 명령어에 할당된 메모리를 해제한다. */
-void release_papago_command(struct discord *client) {
+void sr_command_papago_cleanup(struct discord *client) {
     /* no-op */
 }
 
 /* `/ppg` 명령어를 실행한다. */
-void run_papago_command(
+void sr_command_papago_run(
     struct discord *client,
     const struct discord_interaction *event
 ) {

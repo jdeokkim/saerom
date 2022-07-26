@@ -27,7 +27,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.2.1"
+#define APPLICATION_VERSION      "v0.3.0-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -37,13 +37,15 @@
 #define MAX_FILE_SIZE             1024
 #define MAX_STRING_SIZE           256
 
+#define MAX_ORDER_COUNT           8
+
 /* | 자료형 정의... | */
 
 /* Discord 봇의 명령어를 나타내는 구조체. */
 struct sr_command {
     const char *name;
-    void (*on_create)(struct discord *client);
-    void (*on_release)(struct discord *client);
+    void (*on_init)(struct discord *client);
+    void (*on_cleanup)(struct discord *client);
     void (*on_run)(
         struct discord *client,
         const struct discord_interaction *event
@@ -111,7 +113,10 @@ u64bitmask sr_config_get_module_flags(void);
 u64bitmask sr_config_get_status_flags(void);
 
 /* Discord 봇의 국립국어원 한국어기초사전 API 키를 반환한다. */
-const char *sr_config_get_krdict_api_key(void);
+const char *sr_config_get_krd_api_key(void);
+
+/* Discord 봇의 국립국어원 우리말샘 API 키를 반환한다. */
+const char *sr_config_get_urms_api_key(void);
 
 /* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 ID를 반환한다. */
 const char *sr_config_get_papago_client_id(void);
@@ -128,13 +133,13 @@ void sr_config_set_status_flags(u64bitmask flags);
 /* | `info` 모듈 함수... | */
 
 /* `/info` 명령어를 생성한다. */
-void create_info_command(struct discord *client);
+void sr_command_info_init(struct discord *client);
 
 /* `/info` 명령어에 할당된 메모리를 해제한다. */
-void release_info_command(struct discord *client);
+void sr_command_info_cleanup(struct discord *client);
 
 /* `/info` 명령어를 실행한다. */
-void run_info_command(
+void sr_command_info_run(
     struct discord *client,
     const struct discord_interaction *event
 );
@@ -142,13 +147,13 @@ void run_info_command(
 /* | `krdict` 모듈 함수... | */
 
 /* `/krd` 명령어를 생성한다. */
-void create_krdict_command(struct discord *client);
+void sr_command_krdict_init(struct discord *client);
 
 /* `/krd` 명령어에 할당된 메모리를 해제한다. */
-void release_krdict_command(struct discord *client);
+void sr_command_krdict_cleanup(struct discord *client);
 
 /* `/krd` 명령어를 실행한다. */
-void run_krdict_command(
+void sr_command_krdict_run(
     struct discord *client,
     const struct discord_interaction *event
 );
@@ -156,25 +161,25 @@ void run_krdict_command(
 /* | `owner` 모듈 함수... | */
 
 /* `/msg` 명령어를 생성한다. */
-void create_msg_command(struct discord *client);
+void sr_command_msg_init(struct discord *client);
 
 /* `/msg` 명령어에 할당된 메모리를 해제한다. */
-void release_msg_command(struct discord *client);
+void sr_command_msg_cleanup(struct discord *client);
 
 /* `/msg` 명령어를 실행한다. */
-void run_msg_command(
+void sr_command_msg_run(
     struct discord *client,
     const struct discord_interaction *event
 );
 
 /* `/stop` 명령어를 생성한다. */
-void create_stop_command(struct discord *client);
+void sr_command_stop_init(struct discord *client);
 
 /* `/stop` 명령어에 할당된 메모리를 해제한다. */
-void release_stop_command(struct discord *client);
+void sr_command_stop_cleanup(struct discord *client);
 
 /* `/stop` 명령어를 실행한다. */
-void run_stop_command(
+void sr_command_stop_run(
     struct discord *client,
     const struct discord_interaction *event
 );
@@ -182,13 +187,13 @@ void run_stop_command(
 /* | `papago` 모듈 함수... | */
 
 /* `/ppg` 명령어를 생성한다. */
-void create_papago_command(struct discord *client);
+void sr_command_papago_init(struct discord *client);
 
 /* `/ppg` 모듈 명령어에 할당된 메모리를 해제한다. */
-void release_papago_command(struct discord *client);
+void sr_command_papago_cleanup(struct discord *client);
 
 /* `/ppg` 모듈 명령어를 실행한다. */
-void run_papago_command(
+void sr_command_papago_run(
     struct discord *client,
     const struct discord_interaction *event
 );
