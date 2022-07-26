@@ -107,7 +107,7 @@ static void handle_error(struct papago_context *context, const char *code);
 void create_papago_command(struct discord *client) {
     discord_create_global_application_command(
         client,
-        get_application_id(),
+        sr_config_get_application_id(),
         &params,
         NULL
     );
@@ -160,8 +160,6 @@ void run_papago_command(
     curl_easy_setopt(request.easy, CURLOPT_COPYPOSTFIELDS, buffer);
     curl_easy_setopt(request.easy, CURLOPT_POST, 1);
 
-    struct sr_config *config = get_sr_config();
-
     request.header = curl_slist_append(
         request.header, 
         "Content-Type: application/x-www-form-urlencoded; charset=UTF-8"
@@ -171,7 +169,7 @@ void run_papago_command(
         buffer, 
         sizeof(buffer), 
         "X-Naver-Client-Id: %s",
-        config->papago.client_id
+        sr_config_get_papago_client_id()
     );
 
     request.header = curl_slist_append(request.header, buffer);
@@ -180,7 +178,7 @@ void run_papago_command(
         buffer, 
         sizeof(buffer), 
         "X-Naver-Client-Secret: %s",
-        config->papago.client_secret
+        sr_config_get_papago_client_secret()
     );
 
     request.header = curl_slist_append(request.header, buffer);
@@ -272,7 +270,7 @@ static void on_response(CURLV_STR res, void *user_data) {
 
     discord_edit_original_interaction_response(
         context->client,
-        get_application_id(),
+        sr_config_get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {
@@ -323,7 +321,7 @@ static void handle_error(struct papago_context *context, const char *code) {
 
     discord_edit_original_interaction_response(
         context->client,
-        get_application_id(),
+        sr_config_get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {

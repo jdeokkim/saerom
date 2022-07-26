@@ -110,7 +110,7 @@ static void handle_error(struct krdict_context *context, const char *code);
 void create_krdict_command(struct discord *client) {
     discord_create_global_application_command(
         client,
-        get_application_id(),
+        sr_config_get_application_id(),
         &params,
         NULL
     );
@@ -152,15 +152,13 @@ void run_krdict_command(
 
     char buffer[DISCORD_MAX_MESSAGE_LEN] = "";
 
-    struct sr_config *config = get_sr_config();
-
     snprintf(
         buffer, 
         DISCORD_MAX_MESSAGE_LEN, 
         streq(translated, "true") 
             ? "key=%s&q=%s&advanced=y&translated=y&trans_lang=1"
             : "key=%s&q=%s&advanced=y",
-        config->krdict.api_key,
+        sr_config_get_krdict_api_key(),
         query
     );
 
@@ -532,7 +530,7 @@ static void on_response(CURLV_STR res, void *user_data) {
 
     discord_edit_original_interaction_response(
         context->client,
-        get_application_id(),
+        sr_config_get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .components = &(struct discord_components){
@@ -578,7 +576,7 @@ static void handle_error(struct krdict_context *context, const char *code) {
 
     discord_edit_original_interaction_response(
         context->client,
-        get_application_id(),
+        sr_config_get_application_id(),
         context->event.token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {

@@ -85,7 +85,7 @@ void create_msg_command(struct discord *client) {
 
     discord_create_global_application_command(
         client,
-        get_application_id(),
+        sr_config_get_application_id(),
         &params,
         NULL
     );
@@ -111,7 +111,7 @@ void run_msg_command(
         ? event->member->user
         : event->user;
 
-    if (user->id != get_owner_id()) {
+    if (user->id != sr_config_get_application_owner_id()) {
         const struct discord_user *self = discord_get_self(client);
 
         struct discord_embed embeds[] = {
@@ -218,7 +218,7 @@ void create_stop_command(struct discord *client) {
 
     discord_create_global_application_command(
         client,
-        get_application_id(),
+        sr_config_get_application_id(),
         &params,
         NULL
     );
@@ -227,6 +227,15 @@ void create_stop_command(struct discord *client) {
 /* `/stop` 명령어에 할당된 메모리를 해제한다. */
 void release_stop_command(struct discord *client) {
     /* no-op */
+}
+
+/* (`/stop` 명령어를 실행한다.) */
+static void _run_stop_command(
+    struct discord *client, 
+    struct discord_response *resp, 
+    const struct discord_interaction_response *ret
+) {
+    sr_config_set_status_flags(0);
 }
 
 /* `/stop` 명령어를 실행한다. */
@@ -239,9 +248,9 @@ void run_stop_command(
             ? event->member->user
             : event->user;
 
-        if (user->id != get_owner_id()) {
-            const struct discord_user *self = discord_get_self(client);
+        const struct discord_user *self = discord_get_self(client);
 
+        if (user->id != sr_config_get_application_owner_id()) {
             struct discord_embed embeds[] = {
                 {
                     .description = "This command can only be invoked by the bot owner.",
@@ -280,11 +289,14 @@ void run_stop_command(
 
         struct discord_embed embeds[] = {
             {
-                .title = APPLICATION_NAME,
                 .description = "Shutting down the bot...",
                 .timestamp = discord_timestamp(client),
                 .footer = &(struct discord_embed_footer) {
                     .text = "⚡"
+                },
+                .author = &(struct discord_embed_author) {
+                    .name = self->username,
+                    .icon_url = (char *) get_avatar_url(self)
                 }
             }
         };
@@ -305,14 +317,14 @@ void run_stop_command(
             event->token, 
             &params, 
             &(struct discord_ret_interaction_response) {
-                .done = sr_shutdown
+                .done = _run_stop_command
             }
         );
 
         return;
     }
 
-    sr_shutdown(NULL, NULL, NULL);
+    sr_config_set_status_flags(0);
 }
 
 /* 채널 메시지 전송에 성공했을 때 호출되는 함수. */
@@ -402,17 +414,4 @@ static void on_message_complete(struct discord *client, void *data) {
 
     free(event->token);
     free(event);
-}
-
-/* Discord 봇을 종료한다. */
-static void sr_shutdown(
-    struct discord *client, 
-    struct discord_response *resp, 
-    const struct discord_interaction_response *ret
-) {
-    log_info("[SAEROM] Shutting down the bot");
-
-    deinit_bot();
-
-    exit(EXIT_SUCCESS);
 }

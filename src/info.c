@@ -34,7 +34,7 @@ static struct discord_create_global_application_command params = {
 void create_info_command(struct discord *client) {
     discord_create_global_application_command(
         client,
-        get_application_id(),
+        sr_config_get_application_id(),
         &params,
         NULL
     );
@@ -56,8 +56,6 @@ void run_info_command(
     char uptime_str[MAX_STRING_SIZE];
     char ping_str[MAX_STRING_SIZE];
     char flags_str[MAX_STRING_SIZE];
-
-    struct sr_config *config = get_sr_config();
     
     time_t uptime_in_seconds = get_uptime() * 0.001f;
 
@@ -66,7 +64,7 @@ void run_info_command(
 
     strftime(uptime_str, sizeof(uptime_str), "%T", gmtime(&uptime_in_seconds));
     snprintf(ping_str, sizeof(ping_str), "%dms", discord_get_ping(client));
-    snprintf(flags_str, sizeof(flags_str), "0x%02hhX", config->flags);
+    snprintf(flags_str, sizeof(flags_str), "0x%02" PRIu64 "X", sr_config_get_module_flags());
 
     if (event == NULL) {
         log_info("[SAEROM] %s: %s", APPLICATION_NAME, APPLICATION_DESCRIPTION);

@@ -27,7 +27,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.2.0"
+#define APPLICATION_VERSION      "v0.2.1-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -38,18 +38,6 @@
 #define MAX_STRING_SIZE           256
 
 /* | 자료형 정의... | */
-
-/* Discord 봇의 환경 설정을 나타내는 구조체. */
-struct sr_config {
-    unsigned char flags;
-    struct {
-        char api_key[MAX_STRING_SIZE];
-    } krdict;
-    struct {
-        char client_id[MAX_STRING_SIZE];
-        char client_secret[MAX_STRING_SIZE];
-    } papago;
-};
 
 /* Discord 봇의 명령어를 나타내는 구조체. */
 struct sr_command {
@@ -62,34 +50,33 @@ struct sr_command {
     );
 };
 
-/* Discord 봇의 환경 설정 플래그를 나타내는 열거형. */
-enum sr_flag {
-    SR_FLAG_KRDICT = (1 << 0),
-    SR_FLAG_PAPAGO = (1 << 1)
+/* Discord 봇의 모듈 플래그를 나타내는 열거형. */
+enum sr_module_flag {
+    SR_MODULE_KRDICT = (1 << 0),
+    SR_MODULE_PAPAGO = (1 << 1)
+};
+
+/* Discord 봇의 상태 플래그를 나타내는 열거형. */
+enum sr_status_flag {
+    SR_STATUS_RUNNING = (1 << 0)
 };
 
 /* | `bot` 모듈 함수... | */
 
 /* Discord 봇을 초기화한다. */
-void init_bot(int argc, char *argv[]);
-
-/* Discord 봇을 실행한다. */
-void run_bot(void);
+void sr_bot_init(int argc, char *argv[]);
 
 /* Discord 봇에 할당된 메모리를 해제한다. */
-void deinit_bot(void);
+void sr_bot_cleanup(void);
+
+/* Discord 봇을 실행한다. */
+void sr_bot_run(void);
+
+/* Discord 봇의 클라이언트 객체를 반환한다. */
+struct discord *get_client(void);
 
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void);
-
-/* Discord 봇의 애플리케이션 고유 번호를 반환한다. */
-u64snowflake get_application_id(void);
-
-/* Discord 봇 관리자의 고유 번호를 반환한다. */
-u64snowflake get_owner_id(void);
-
-/* Discord 봇의 환경 설정 정보를 반환한다. */
-struct sr_config *get_sr_config(void);
 
 /* Discord 봇의 명령어 목록을 반환한다. */
 const struct sr_command *get_commands(int *len);
@@ -102,6 +89,41 @@ double get_ram_usage(void);
 
 /* Discord 봇의 작동 시간 (단위: 밀리초)을 반환한다. */
 uint64_t get_uptime(void);
+
+/* | `config` 모듈 함수... | */
+
+/* Discord 봇의 환경 설정을 초기화한다. */
+void sr_config_init(void);
+
+/* Discord 봇의 환경 설정에 할당된 메모리를 해제한다. */
+void sr_config_cleanup(void);
+
+/* Discord 봇의 애플리케이션 ID를 반환한다. */
+u64snowflake sr_config_get_application_id(void);
+
+/* Discord 봇의 애플리케이션 소유자 ID를 반환한다. */
+u64snowflake sr_config_get_application_owner_id(void);
+
+/* Discord 봇의 모듈 플래그 데이터를 반환한다. */
+u64bitmask sr_config_get_module_flags(void);
+
+/* Discord 봇의 상태 플래그 데이터를 반환한다. */
+u64bitmask sr_config_get_status_flags(void);
+
+/* Discord 봇의 국립국어원 한국어기초사전 API 키를 반환한다. */
+const char *sr_config_get_krdict_api_key(void);
+
+/* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 ID를 반환한다. */
+const char *sr_config_get_papago_client_id(void);
+
+/* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 시크릿을 반환한다. */
+const char *sr_config_get_papago_client_secret(void);
+
+/* Discord 봇의 모듈 플래그 데이터를 `flags`로 설정한다. */
+void sr_config_set_module_flags(u64bitmask flags);
+
+/* Discord 봇의 상태 플래그 데이터를 `flags`로 설정한다. */
+void sr_config_set_status_flags(u64bitmask flags);
 
 /* | `info` 모듈 함수... | */
 

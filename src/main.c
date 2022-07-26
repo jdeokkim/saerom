@@ -18,11 +18,11 @@
 #include "saerom.h"
 
 int main(int argc, char *argv[]) {
-    init_bot(argc, argv);
+    sr_bot_init(argc, argv);
 
-    run_bot();
+    sr_bot_run();
 
-    deinit_bot();
+    sr_bot_cleanup();
 
     return 0;
 }

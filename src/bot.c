@@ -15,7 +15,6 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
 #include <string.h>
 #include <sigar.h>
 
@@ -73,21 +72,12 @@ static sigar_t *sigar;
 /* Discord 봇의 클라이언트 객체. */
 static struct discord *client;
 
-/* Discord 봇의 환경 설정. */
-static struct sr_config config;
-
-/* Discord 봇의 애플리케이션 고유 번호. */
-static u64snowflake application_id;
-
-/* Discord 봇 관리자의 고유 번호. */
-static u64snowflake owner_id;
-
 /* Discord 봇의 시작 시간. */
 static uint64_t timestamp;
 
 /* | `bot` 모듈 함수... | */
 
-/* Discord 봇이 실행 중일 때 주기적으로 호출된다.  */
+/* Discord 봇이 대기 중일 때 주기적으로 호출된다. */
 static void on_idle(struct discord *client);
 
 /* Discord 봇의 클라이언트가 준비되었을 때 호출된다. */
@@ -103,10 +93,10 @@ static void on_interaction_create(
 );
 
 /* Discord 봇의 추가 정보를 초기화한다. */
-static void sr_config_init(void);
+static void sr_core_init(void);
 
 /* Discord 봇의 추가 정보에 할당된 메모리를 해제한다. */
-static void sr_config_cleanup(void);
+static void sr_core_cleanup(void);
 
 /* 표준 입력 스트림에서 명령어를 입력받는 스레드를 생성한다. */
 static void sr_input_reader_init(void);
@@ -118,13 +108,12 @@ static void create_commands(struct discord *client);
 static void release_commands(struct discord *client);
 
 /* Discord 봇을 초기화한다. */
-void init_bot(int argc, char *argv[]) {
+void sr_bot_init(int argc, char *argv[]) {
     ccord_global_init();
 
     client = discord_config_init((argc > 1) ? argv[1] : CONFIG_PATH);
 
-    sr_config_init();
-    sr_input_reader_init();
+    sr_core_init();
 
     discord_set_on_idle(client, on_idle);
     discord_set_on_ready(client, on_ready);
@@ -133,16 +122,11 @@ void init_bot(int argc, char *argv[]) {
     create_commands(client);
 }
 
-/* Discord 봇을 실행한다. */
-void run_bot(void) {
-    discord_run(client);
-}
-
 /* Discord 봇에 할당된 메모리를 해제한다. */
-void deinit_bot(void) {
+void sr_bot_cleanup(void) {
     release_commands(client);
 
-    sr_config_cleanup();
+    sr_core_cleanup();
     
     log_info("[SAEROM] Cleaning up global resources");
 
@@ -151,24 +135,19 @@ void deinit_bot(void) {
     ccord_global_cleanup();
 }
 
+/* Discord 봇을 실행한다. */
+void sr_bot_run(void) {
+    discord_run(client);
+}
+
+/* Discord 봇의 클라이언트 객체를 반환한다. */
+struct discord *get_client(void) {
+    return client;
+}
+
 /* `CURLV` 인터페이스를 반환한다. */
 void *get_curlv(void) {
     return (void *) curlv;
-}
-
-/* Discord 봇의 애플리케이션 고유 번호를 반환한다. */
-u64snowflake get_application_id(void) {
-    return application_id;
-}
-
-/* Discord 봇 관리자의 고유 번호를 반환한다. */
-u64snowflake get_owner_id(void) {
-    return owner_id;
-}
-
-/* Discord 봇의 환경 설정 정보를 반환한다. */
-struct sr_config *get_sr_config(void) {
-    return &config;
 }
 
 /* Discord 봇의 명령어 목록을 반환한다. */
@@ -211,8 +190,18 @@ uint64_t get_uptime(void) {
     return discord_timestamp(client) - timestamp;
 }
 
-/* Discord 봇이 실행 중일 때 주기적으로 호출된다.  */
+/* Discord 봇이 대기 중일 때 주기적으로 호출된다. */
 static void on_idle(struct discord *client) {
+    if (!(sr_config_get_status_flags() & SR_STATUS_RUNNING)) {
+        sr_config_set_status_flags(0);
+
+        log_info("[SAEROM] Shutting down the bot");
+
+        sr_bot_cleanup();
+
+        exit(EXIT_SUCCESS);
+    }
+    
     curlv_read_requests(curlv);
 
     // CPU 사용량 최적화
@@ -318,77 +307,24 @@ static void on_interaction_create(
     }
 }
 
-/* (Discord 봇의 추가 정보를 초기화한다.) */
-static void _sr_config_init(
-    struct discord *client, 
-    struct discord_response *resp, 
-    const struct discord_application *ret
-) {
-    owner_id = ret->owner->id;
-}
-
 /* Discord 봇의 추가 정보를 초기화한다. */
-static void sr_config_init(void) {
+static void sr_core_init(void) {
     if (client == NULL) return;
 
     curlv = curlv_init();
 
     sigar_open(&sigar);
 
-    struct ccord_szbuf_readonly field = discord_config_get_field(
-        client, (char *[2]) { "discord", "application_id" }, 2
-    );
-
-    char buffer[MAX_STRING_SIZE];
-
-    strncpy(buffer, field.start, field.size);
-
-    application_id = strtoull(buffer, NULL, 10);
-
-    field = discord_config_get_field(
-        client, (char *[3]) { "saerom", "krdict", "enable" }, 3
-    );
-
-    if (strncmp("true", field.start, field.size) == 0) {
-        config.flags |= SR_FLAG_KRDICT;
-
-        field = discord_config_get_field(
-            client, (char *[3]) { "saerom", "krdict", "api_key" }, 3
-        );
-
-        strncpy(config.krdict.api_key, field.start, field.size);
-    }
-
-    field = discord_config_get_field(
-        client, (char *[3]) { "saerom", "papago", "enable" }, 3
-    );
-
-    if (strncmp("true", field.start, field.size) == 0) {
-        config.flags |= SR_FLAG_PAPAGO;
-
-        field = discord_config_get_field(
-            client, (char *[3]) { "saerom", "papago", "client_id" }, 3
-        );
-
-        strncpy(config.papago.client_id, field.start, field.size);
-
-        field = discord_config_get_field(
-            client, (char *[3]) { "saerom", "papago", "client_secret" }, 3
-        );
-
-        strncpy(config.papago.client_secret, field.start, field.size);
-    }
-
-    discord_get_current_bot_application_information(
-        client, 
-        &(struct discord_ret_application) {
-            .done = _sr_config_init
-        }
-    );
+    sr_config_init();
+    sr_input_reader_init();
 }
 
 /* Discord 봇의 추가 정보에 할당된 메모리를 해제한다. */
-static void sr_config_cleanup(void) {
+static void sr_core_cleanup(void) {
+    if (client == NULL) return;
+    
+    sr_config_cleanup();
+
     curlv_cleanup(curlv);
 
     sigar_close(sigar);
@@ -412,14 +348,16 @@ static void sr_input_reader_init(void) {
 static void create_commands(struct discord *client) {
     const int commands_len = sizeof(commands) / sizeof(*commands);
 
+    const u64bitmask module_flags = sr_config_get_module_flags();
+
     log_info("[SAEROM] Creating %d global application command(s)", commands_len);
 
     for (int i = 0; i < commands_len; i++) {
         if (streq(commands[i].name, "krd")
-            && !(config.flags & SR_FLAG_KRDICT)) continue;
+            && !(module_flags & SR_MODULE_KRDICT)) continue;
 
         if (streq(commands[i].name, "ppg")
-            && !(config.flags & SR_FLAG_PAPAGO)) continue;
+            && !(module_flags & SR_MODULE_PAPAGO)) continue;
 
         if (commands[i].on_create != NULL)
             commands[i].on_create(client);
@@ -430,14 +368,16 @@ static void create_commands(struct discord *client) {
 static void release_commands(struct discord *client) {
     const int commands_len = sizeof(commands) / sizeof(*commands);
 
+    const u64bitmask module_flags = sr_config_get_module_flags();
+
     log_info("[SAEROM] Releasing %d global application command(s)", commands_len);
 
     for (int i = 0; i < commands_len; i++) {
         if (streq(commands[i].name, "krd")
-            && !(config.flags & SR_FLAG_KRDICT)) continue;
+            && !(module_flags & SR_MODULE_KRDICT)) continue;
 
         if (streq(commands[i].name, "ppg")
-            && !(config.flags & SR_FLAG_PAPAGO)) continue;
+            && !(module_flags & SR_MODULE_PAPAGO)) continue;
 
         if (commands[i].on_release != NULL)
             commands[i].on_release(client);
