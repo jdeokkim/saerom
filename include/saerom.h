@@ -27,7 +27,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.3.0-dev"
+#define APPLICATION_VERSION      "v0.3.0"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -36,8 +36,6 @@
 
 #define MAX_FILE_SIZE             1024
 #define MAX_STRING_SIZE           256
-
-#define MAX_ORDER_COUNT           8
 
 /* | 자료형 정의... | */
 

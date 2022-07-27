@@ -274,8 +274,9 @@ static void on_interaction_create(
             context = event->data->name;
 
             log_info(
-                "[SAEROM] Handling command `/%s` executed by %s#%s",
+                "[SAEROM] Handling command `/%s` (:%" PRIu64 ") executed by %s#%s",
                 context,
+                event->data->id,
                 user->username,
                 user->discriminator
             );
@@ -350,7 +351,7 @@ static void create_commands(struct discord *client) {
 
     const u64bitmask module_flags = sr_config_get_module_flags();
 
-    log_info("[SAEROM] Creating %d global application command(s)", commands_len);
+    log_info("[SAEROM] Creating global application command(s)");
 
     for (int i = 0; i < commands_len; i++) {
         if (streq(commands[i].name, "krd")
@@ -370,7 +371,7 @@ static void release_commands(struct discord *client) {
 
     const u64bitmask module_flags = sr_config_get_module_flags();
 
-    log_info("[SAEROM] Releasing %d global application command(s)", commands_len);
+    log_info("[SAEROM] Releasing global application command(s)");
 
     for (int i = 0; i < commands_len; i++) {
         if (streq(commands[i].name, "krd")

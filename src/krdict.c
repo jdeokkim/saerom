@@ -24,7 +24,10 @@
 #include "saerom.h"
 
 #define KRDICT_REQUEST_URL    "https://krdict.korean.go.kr/api/search"
-#define OPENDICT_REQUEST_URL  "https://opendict.korean.go.kr/api/search"
+#define URMS_REQUEST_URL      "https://opendict.korean.go.kr/api/search"
+
+#define MAX_EXAMPLE_COUNT     10
+#define MAX_ORDER_COUNT       7
 
 /* | `krdict` 모듈 자료형 정의... | */
 
@@ -35,7 +38,13 @@ struct krdict_context {
         u64snowflake id;
         char *token;
     } event;
-    bool translated;
+    u64snowflake flags;
+};
+
+/* `/krd` 명령어의 조건 플래그를 나타내는 열거형. */
+enum krdict_flag {
+    KRD_FLAG_PART_EXAM  = (1 << 0),
+    KRD_FLAG_TRANSLATED = (1 << 1)
 };
 
 /* `/krd` 명령어의 개별 검색 결과를 나타내는 구조체. */
@@ -44,7 +53,9 @@ struct krdict_item {
     char origin[MAX_STRING_SIZE];
     char pos[MAX_STRING_SIZE];
     char link[MAX_STRING_SIZE];
-    char entry[DISCORD_EMBED_DESCRIPTION_LEN];
+    char dfn[DISCORD_MAX_MESSAGE_LEN];
+    char exam[DISCORD_MAX_MESSAGE_LEN];
+    char entry[DISCORD_MAX_MESSAGE_LEN];
 };
 
 /* | `krdict` 모듈 상수 및 변수... | */
@@ -66,7 +77,7 @@ static struct discord_application_command_option options[] = {
     {
         .type = DISCORD_APPLICATION_OPTION_STRING,
         .name = "part",
-        .description = "Which part of each entry to be returned (if `exam`, the `translated` option will be ignored)",
+        .description = "Which part of each entry to be shown (if 'Examples' is chosen, it will NOT be translated)",
         .choices = &(struct discord_application_command_option_choices) {
             .size = sizeof(choices) / sizeof(*choices),
             .array = choices
@@ -150,13 +161,14 @@ void sr_command_krdict_run(
         return;
     }
 
-    char *query = "", *translated = "true";
+    char *query = "", *part = "word", *translated = "true";
 
     for (int i = 0; i < event->data->options->size; i++) {
         char *name = event->data->options->array[i].name;
         char *value = event->data->options->array[i].value;
 
         if (streq(name, "query")) query = value;
+        else if (streq(name, "part")) part = value;
         else if (streq(name, "translated")) translated = value;
     }
 
@@ -166,17 +178,33 @@ void sr_command_krdict_run(
 
     char buffer[DISCORD_MAX_MESSAGE_LEN] = "";
 
-    snprintf(
-        buffer, 
-        DISCORD_MAX_MESSAGE_LEN, 
-        streq(translated, "true") 
-            ? "key=%s&q=%s&advanced=y&translated=y&trans_lang=1"
-            : "key=%s&q=%s&advanced=y",
-        sr_config_get_krd_api_key(),
-        query
-    );
+    // 우리말샘 오픈 API는 다국어 번역을 지원하지 않는다.
+    if (streq(part, "exam") || streq(translated, "false")) {
+        snprintf(
+            buffer, 
+            DISCORD_MAX_MESSAGE_LEN, 
+            "key=%s&q=%s&part=%s&advanced=%s",
+            sr_config_get_urms_api_key(),
+            query,
+            part,
+            (streq(part, "word")) ? "y" : "n"
+        );
 
-    curl_easy_setopt(request.easy, CURLOPT_URL, KRDICT_REQUEST_URL);
+        curl_easy_setopt(request.easy, CURLOPT_URL, URMS_REQUEST_URL);
+    } else {
+        snprintf(
+            buffer, 
+            DISCORD_MAX_MESSAGE_LEN, 
+            "key=%s&q=%s&part=%s&advanced=%s&translated=y&trans_lang=1",
+            sr_config_get_krd_api_key(),
+            query,
+            part,
+            (streq(part, "word")) ? "y" : "n"
+        );
+
+        curl_easy_setopt(request.easy, CURLOPT_URL, KRDICT_REQUEST_URL);
+    }
+
     curl_easy_setopt(request.easy, CURLOPT_POSTFIELDSIZE, strlen(buffer));
     curl_easy_setopt(request.easy, CURLOPT_COPYPOSTFIELDS, buffer);
     curl_easy_setopt(request.easy, CURLOPT_SSL_VERIFYPEER, false);
@@ -187,9 +215,11 @@ void sr_command_krdict_run(
     context->client = client;
     context->event.id = event->id;
     context->event.token = malloc(strlen(event->token) + 1);
-    context->translated = streq(translated, "true");
 
     strcpy(context->event.token, event->token);
+
+    if (streq(part, "exam")) context->flags |= KRD_FLAG_PART_EXAM;
+    if (streq(translated, "true")) context->flags |= KRD_FLAG_TRANSLATED;
 
     request.user_data = context;
 
@@ -349,13 +379,21 @@ static void on_interaction(
 static void on_response(CURLV_STR res, void *user_data) {
     if (res.str == NULL || user_data == NULL) return;
 
-    log_info("[SAEROM] Received %ld bytes from \"%s\"", res.len, KRDICT_REQUEST_URL);
+    struct krdict_context *context = (struct krdict_context *) user_data;
+
+    bool request_url_check = (context->flags & KRD_FLAG_PART_EXAM)
+        || !(context->flags & KRD_FLAG_TRANSLATED);
+
+    log_info(
+        "[SAEROM] Received %ld bytes from \"%s\"", 
+        res.len,
+        request_url_check ? URMS_REQUEST_URL : KRDICT_REQUEST_URL
+    );
 
     yxml_t *parser = malloc(sizeof(yxml_t) + res.len);
 
     yxml_init(parser, parser + 1, res.len);
 
-    struct krdict_context *context = (struct krdict_context *) user_data;
     struct krdict_item item = { .word = "" };
 
     char buffer[DISCORD_EMBED_DESCRIPTION_LEN] = "";
@@ -363,7 +401,7 @@ static void on_response(CURLV_STR res, void *user_data) {
 
     char *elem, *temp, *ptr;
 
-    int len, num, order, total = 1;
+    int len, num, total, order = 1;
 
     for (char *doc = res.str; *doc; doc++) {
         yxml_ret_t result = yxml_parse(parser, *doc);
@@ -419,87 +457,106 @@ static void on_response(CURLV_STR res, void *user_data) {
 
                         if (total > num) total = num;
                     } else {
-                        continue;
+                        break;
                     }
                 }
 
-                if (streq(elem, "word")) {
-                    strncpy(item.word, content, sizeof(item.word));
-                } else if (streq(elem, "origin")) {
-                    strncpy(item.origin, content, sizeof(item.origin));
-                } else if (streq(elem, "pos")) {
-                    strncpy(item.pos, content, sizeof(item.pos));
-                } else if (streq(elem, "link")) {
-                    strncpy(item.link, content, sizeof(item.link));
+                // 검색 결과로 어휘를 출력할 경우?
+                if (!(context->flags & KRD_FLAG_PART_EXAM)) {
+                    if (order > MAX_ORDER_COUNT) break;
 
-                    if (strlen(item.origin) > 0) {
-                        snprintf(
-                            item.entry, 
-                            sizeof(item.entry), 
-                            "[**%s (%s) 「%s」**](%s)\n\n",
-                            item.word,
-                            item.origin,
-                            item.pos,
-                            item.link
-                        );
-                    } else {
-                        snprintf(
-                            item.entry, 
-                            sizeof(item.entry), 
-                            "[**%s 「%s」**](%s)\n\n",
-                            item.word,
-                            item.pos,
-                            item.link
-                        );
+                    if (streq(elem, "word")) {
+                        strncpy(item.word, content, sizeof(item.word));
+                    } else if (streq(elem, "pos")) {
+                        strncpy(item.pos, content, sizeof(item.pos));
+                    } else if (streq(elem, "link")) {
+                        strncpy(item.link, content, sizeof(item.link));
+                    } else if (streq(elem, "origin")) {
+                        strncpy(item.origin, content, sizeof(item.origin));
+                    } else if (streq(elem, "sense_order") || streq(elem, "sense_no")) {
+                        order = atoi(content);
+                    } else if (streq(elem, "definition") || streq(elem, "trans_word")) {
+                        strncpy(item.dfn, content, sizeof(item.dfn));
+                    } else if (streq(elem, "trans_dfn")) {
+                        strncpy(item.exam, content, sizeof(item.exam));
+                    } else if (streq(elem, "sense")) {
+                        const char *item_pos = strlen(item.pos) > 0 ? item.pos : "?";
+
+                        if (strlen(item.origin) > 0) {
+                            snprintf(
+                                item.entry, 
+                                sizeof(item.entry), 
+                                "[**%s (%s) 「%s」**](%s)\n\n",
+                                item.word,
+                                item.origin,
+                                item_pos,
+                                item.link
+                            );
+                        } else {
+                            snprintf(
+                                item.entry, 
+                                sizeof(item.entry), 
+                                "[**%s 「%s」**](%s)\n\n",
+                                item.word,
+                                item_pos,
+                                item.link
+                            );
+                        }
+
+                        strcat(buffer, item.entry);
+
+                        if (context->flags & KRD_FLAG_TRANSLATED) {
+                            len = strlen(buffer);
+
+                            snprintf(
+                                buffer + len, 
+                                sizeof(buffer) - len,
+                                "**%d. %s**\n",
+                                order,
+                                item.dfn
+                            );
+
+                            len = strlen(buffer);
+
+                            snprintf(
+                                buffer + len, 
+                                sizeof(buffer) - len,
+                                "- %s\n\n",
+                                item.exam
+                            );
+                        } else {
+                            len = strlen(buffer);
+
+                            snprintf(
+                                buffer + len, 
+                                sizeof(buffer) - len,
+                                "- %s\n\n",
+                                item.dfn
+                            );
+                        }
                     }
+                } else {
+                    if (order > MAX_EXAMPLE_COUNT) break;
 
-                    strcat(buffer, item.entry);
-                } else if (streq(elem, "sense_order")) {
-                    order = atoi(content);
-                } else if (streq(elem, "definition")) {
-                    if (context->translated) break;
+                    if (streq(elem, "word")) {
+                        strncpy(item.word, content, sizeof(item.word));
+                    } else if (streq(elem, "example")) {
+                        strncpy(item.exam, content, sizeof(item.exam));
+                    } else if (streq(elem, "link")) {
+                        strncpy(item.link, content, sizeof(item.link));
 
-                    len = strlen(buffer);
+                        len = strlen(buffer);
 
-                    snprintf(
-                        buffer + len, 
-                        sizeof(buffer) - len,
-                        "**%d. %s**\n- ",
-                        order,
-                        item.word
-                    );
+                        snprintf(
+                            buffer + len, 
+                            sizeof(buffer) - len,
+                            "%d. %s\n\n",
+                            order,
+                            item.exam
+                        );
 
-                    len = strlen(buffer);
-
-                    snprintf(
-                        buffer + len, 
-                        sizeof(buffer) - len,
-                        "%s\n\n",
-                        content
-                    );
-                } else if (streq(elem, "trans_word")) {
-                    if (order >= MAX_ORDER_COUNT) break;
-
-                    len = strlen(buffer);
-
-                    snprintf(
-                        buffer + len, 
-                        sizeof(buffer) - len,
-                        "**%d. %s**\n- ",
-                        order,
-                        content
-                    );
-                } else if (streq(elem, "trans_dfn")) {
-                    if (order >= MAX_ORDER_COUNT) break;
-
-                    len = strlen(buffer);
-
-                    snprintf(
-                        buffer + len, 
-                        sizeof(buffer) - len,
-                        "%s\n\n",
-                        content
-                    );
+                        order++;
+                    }
                 }
 
                 elem = parser->elem;
