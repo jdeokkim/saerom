@@ -64,7 +64,7 @@ void sr_command_info_run(
 
     strftime(uptime_str, sizeof(uptime_str), "%T", gmtime(&uptime_in_seconds));
     snprintf(ping_str, sizeof(ping_str), "%dms", discord_get_ping(client));
-    snprintf(flags_str, sizeof(flags_str), "0x%02" PRIu64 "X", sr_config_get_module_flags());
+    snprintf(flags_str, sizeof(flags_str), "0x%02lX", sr_config_get_module_flags());
 
     if (event == NULL) {
         log_info("[SAEROM] %s: %s", APPLICATION_NAME, APPLICATION_DESCRIPTION);
@@ -73,7 +73,8 @@ void sr_command_info_run(
             "[SAEROM] Version: %s, Uptime: %s, Latency: %s", 
             APPLICATION_VERSION, 
             uptime_str, 
-            flags_str
+            flags_str,
+            ping_str
         );
 
         log_info(
