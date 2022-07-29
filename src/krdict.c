@@ -33,11 +33,7 @@
 
 /* `/krd` 명령어의 실행 정보를 나타내는 구조체. */
 struct krdict_context {
-    struct discord *client;
-    struct {
-        u64snowflake id;
-        char *token;
-    } event;
+    const struct discord_interaction *event;
     u64snowflake flags;
 };
 
@@ -212,11 +208,7 @@ void sr_command_krdict_run(
 
     struct krdict_context *context = malloc(sizeof(struct krdict_context));
 
-    context->client = client;
-    context->event.id = event->id;
-    context->event.token = malloc(strlen(event->token) + 1);
-
-    strcpy(context->event.token, event->token);
+    context->event = discord_claim(client, event);
 
     if (streq(part, "exam")) context->flags |= KRD_FLAG_PART_EXAM;
     if (streq(translated, "true")) context->flags |= KRD_FLAG_TRANSLATED;
@@ -226,9 +218,9 @@ void sr_command_krdict_run(
     curlv_create_request(get_curlv(), &request);
 
     discord_create_interaction_response(
-        context->client, 
-        context->event.id, 
-        context->event.token, 
+        client, 
+        event->id, 
+        event->token, 
         &(struct discord_interaction_response) {
             .type = DISCORD_INTERACTION_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
         },
@@ -567,11 +559,13 @@ static void on_response(CURLV_STR res, void *user_data) {
         if (total <= 0) break;
     }
 
+    struct discord *client = get_client();
+
     struct discord_embed embeds[] = {
         {
             .title = "Results",
             .description = "No results found.",
-            .timestamp = discord_timestamp(context->client),
+            .timestamp = discord_timestamp(client),
             .footer = &(struct discord_embed_footer) {
                 .text = "🗒️"
             }
@@ -600,9 +594,9 @@ static void on_response(CURLV_STR res, void *user_data) {
     };
 
     discord_edit_original_interaction_response(
-        context->client,
+        client,
         sr_config_get_application_id(),
-        context->event.token,
+        context->event->token,
         &(struct discord_edit_original_interaction_response) {
             .components = &(struct discord_components){
                 .size = (total > 0) 
@@ -618,9 +612,9 @@ static void on_response(CURLV_STR res, void *user_data) {
         NULL
     );
 
-    free(context->event.token);
-    free(context);
+    discord_unclaim(client, context->event);
 
+    free(context);
     free(parser);
 }
 
@@ -633,12 +627,14 @@ static void handle_error(struct krdict_context *context, const char *code) {
         code
     );
 
+    struct discord *client = get_client();
+
     struct discord_embed embeds[] = {
         {
             .title = "Results",
             .description = "An unknown error has occured while processing "
                            "your request.",
-            .timestamp = discord_timestamp(context->client),
+            .timestamp = discord_timestamp(client),
             .footer = &(struct discord_embed_footer) {
                 .text = "🗒️"
             }
@@ -646,9 +642,9 @@ static void handle_error(struct krdict_context *context, const char *code) {
     };
 
     discord_edit_original_interaction_response(
-        context->client,
+        client,
         sr_config_get_application_id(),
-        context->event.token,
+        context->event->token,
         &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {
                 .size = sizeof(embeds) / sizeof(*embeds),
@@ -658,6 +654,7 @@ static void handle_error(struct krdict_context *context, const char *code) {
         NULL
     );
 
-    free(context->event.token);
+    discord_unclaim(client, context->event);
+
     free(context);
 }

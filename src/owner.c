@@ -38,13 +38,6 @@ static void on_message_failure(
 /* 채널 메시지 전송이 끝났을 때 호출되는 함수. */
 static void on_message_complete(struct discord *client, void *data);
 
-/* Discord 봇을 종료한다. */
-static void sr_shutdown(
-    struct discord *client, 
-    struct discord_response *resp, 
-    const struct discord_interaction_response *ret
-);
-
 /* `/msg` 명령어를 생성한다. */
 void sr_command_msg_init(struct discord *client) {
     int integers[] = { DISCORD_CHANNEL_GUILD_TEXT, DISCORD_CHANNEL_DM };
@@ -324,7 +317,7 @@ void sr_command_stop_run(
         return;
     }
 
-    sr_config_set_status_flags(0);
+    _sr_command_stop_run(NULL, NULL, NULL);
 }
 
 /* 채널 메시지 전송에 성공했을 때 호출되는 함수. */
