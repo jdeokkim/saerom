@@ -34,7 +34,7 @@
 /* `/krd` 명령어의 실행 정보를 나타내는 구조체. */
 struct krdict_context {
     const struct discord_interaction *event;
-    u64snowflake flags;
+    u64bitmask flags;
 };
 
 /* `/krd` 명령어의 조건 플래그를 나타내는 열거형. */
@@ -51,7 +51,6 @@ struct krdict_item {
     char link[MAX_STRING_SIZE];
     char dfn[DISCORD_MAX_MESSAGE_LEN];
     char exam[DISCORD_MAX_MESSAGE_LEN];
-    char entry[DISCORD_MAX_MESSAGE_LEN];
 };
 
 /* | `krdict` 모듈 상수 및 변수... | */
@@ -474,10 +473,12 @@ static void on_response(CURLV_STR res, void *user_data) {
                     } else if (streq(elem, "sense")) {
                         const char *item_pos = strlen(item.pos) > 0 ? item.pos : "?";
 
+                        len = strlen(buffer);
+
                         if (strlen(item.origin) > 0) {
                             snprintf(
-                                item.entry, 
-                                sizeof(item.entry), 
+                                buffer + len, 
+                                sizeof(buffer) - len,
                                 "[**%s (%s) 「%s」**](%s)\n\n",
                                 item.word,
                                 item.origin,
@@ -486,16 +487,14 @@ static void on_response(CURLV_STR res, void *user_data) {
                             );
                         } else {
                             snprintf(
-                                item.entry, 
-                                sizeof(item.entry), 
+                                buffer + len, 
+                                sizeof(buffer) - len,
                                 "[**%s 「%s」**](%s)\n\n",
                                 item.word,
                                 item_pos,
                                 item.link
                             );
                         }
-
-                        strcat(buffer, item.entry);
 
                         if (context->flags & KRD_FLAG_TRANSLATED) {
                             len = strlen(buffer);
