@@ -4,6 +4,7 @@
 [![version badge](https://img.shields.io/github/v/release/jdeokkim/saerom?color=orange&include_prereleases)](https://github.com/jdeokkim/saerom/releases)
 [![code-size badge](https://img.shields.io/github/languages/code-size/jdeokkim/saerom?color=green)](https://github.com/jdeokkim/saerom)
 [![license badge](https://img.shields.io/github/license/jdeokkim/saerom?color=brightgreen)](https://github.com/jdeokkim/saerom/blob/main/LICENSE)
+[![codefactor badge](https://www.codefactor.io/repository/github/jdeokkim/saerom/badge/main)](https://www.codefactor.io/repository/github/jdeokkim/saerom/overview/main)
 
 A C99 Discord bot for Korean learning servers.
 

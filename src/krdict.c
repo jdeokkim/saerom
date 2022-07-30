@@ -116,7 +116,7 @@ static void on_message_failure(
 static void on_message_complete(struct discord *client, void *data);
 
 /* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
-static void on_interaction(
+static void on_component_interaction(
     struct discord *client,
     const struct discord_interaction *event
 );
@@ -152,7 +152,7 @@ void sr_command_krdict_run(
 
         return;
     } else if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) {
-        on_interaction(client, event);
+        on_component_interaction(client, event);
 
         return;
     }
@@ -319,7 +319,7 @@ static void on_message_complete(struct discord *client, void *data) {
 }
 
 /* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
-static void on_interaction(
+static void on_component_interaction(
     struct discord *client,
     const struct discord_interaction *event
 ) {

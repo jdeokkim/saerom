@@ -136,11 +136,55 @@ void sr_command_papago_run(
         else if (streq(name, "target")) target = value;
     }
 
+    char buffer[DISCORD_MAX_MESSAGE_LEN] = "";
+
+    size_t text_length = utf8len(text);
+
+    if (text_length > MAX_TEXT_LENGTH) {
+        snprintf(
+            buffer, 
+            sizeof(buffer), 
+            "The length of the `text` option (`%zu` characters) must be less than "
+            "or equal to `%d` characters.",
+            text_length,
+            MAX_TEXT_LENGTH
+        );
+
+        struct discord_embed embeds[] = {
+            {
+                .title = "Translation",
+                .description = buffer,
+                .timestamp = discord_timestamp(client),
+                .footer = &(struct discord_embed_footer) {
+                    .text = "🌏"
+                }
+            }
+        };
+
+        struct discord_interaction_response params = {
+            .type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
+            .data = &(struct discord_interaction_callback_data) { 
+                .embeds = &(struct discord_embeds) {
+                    .size = sizeof(embeds) / sizeof(*embeds),
+                    .array = embeds
+                }
+            }
+        };
+
+        discord_create_interaction_response(
+            client, 
+            event->id, 
+            event->token, 
+            &params, 
+            NULL
+        );
+
+        return;
+    }
+
     CURLV_REQ request = { .callback = on_response };
 
     request.easy = curl_easy_init();
-
-    char buffer[DISCORD_MAX_MESSAGE_LEN] = "";
 
     snprintf(
         buffer, 

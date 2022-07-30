@@ -27,15 +27,15 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.3.2"
+#define APPLICATION_VERSION      "v0.3.3-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
 #define DEVELOPER_NAME           "Jaedeok Kim"
 #define DEVELOPER_ICON_URL       "https://avatars.githubusercontent.com/u/28700668"
 
-#define MAX_FILE_SIZE             1024
 #define MAX_STRING_SIZE           256
+#define MAX_TEXT_LENGTH           256
 
 /* | 자료형 정의... | */
 
@@ -206,5 +206,8 @@ void *read_input(void *arg);
 
 /* 두 문자열의 내용이 서로 같은지 확인한다. */
 bool streq(const char *s1, const char *s2);
+
+/* UTF-8로 인코딩된 문자열의 길이를 반환한다. */
+size_t utf8len(const char *str);
 
 #endif

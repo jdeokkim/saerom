@@ -28,8 +28,6 @@
 
 #define DISCORD_MAGIC_NUMBER  5
 
-#define MAX_COMMAND_SIZE      (MAX_STRING_SIZE + DISCORD_MAX_MESSAGE_LEN)
-
 /* | `utils` 모듈 함수... | */
 
 /* 주어진 사용자의 프로필 사진 URL을 반환한다. */
@@ -61,7 +59,7 @@ void *read_input(void *arg) {
     struct discord *client = arg;
     struct sr_command *commands = NULL;
 
-    char context[MAX_COMMAND_SIZE];
+    char context[DISCORD_MAX_MESSAGE_LEN];
     
     int commands_len = 0;
 
@@ -96,4 +94,21 @@ void *read_input(void *arg) {
 /* 두 문자열의 내용이 서로 같은지 확인한다. */
 bool streq(const char *s1, const char *s2) {
     return strncmp(s1, s2, MAX_STRING_SIZE) == 0;
+}
+
+/* UTF-8로 인코딩된 문자열의 길이를 반환한다. */
+size_t utf8len(const char *str) {
+    size_t result = 0;
+
+    // 첫 번째 바이트만 확인한다.
+    for (const char *c = str; *c; c++) {
+        if ((*c & 0xf8) == 0xf0) c += 3;
+        else if ((*c & 0xf0) == 0xe0) c += 2;
+        else if ((*c & 0xe0) == 0xc0) c += 1;
+        else ;
+        
+        result++;
+    }
+
+    return result;
 }
