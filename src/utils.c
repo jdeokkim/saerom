@@ -56,39 +56,6 @@ const char *get_avatar_url(const struct discord_user *user) {
     return buffer;
 }
 
-/* 주어진 경로에 위치한 파일의 내용을 반환한다. */
-char *get_file_contents(const char *path) {
-    FILE *fp = fopen(path, "rb");
-
-    if (fp == NULL) {
-        log_warn("[SAEROM] Unable to open file \"%s\"", path);
-
-        return NULL;
-    }
-
-    char *buffer = malloc(MAX_FILE_SIZE);
-
-    if (buffer == NULL) {
-        log_warn("[SAEROM] Unable to allocate memory for file \"%s\"", path);
-
-        return NULL;
-    }
-
-    size_t file_size = fread(buffer, sizeof(*buffer), MAX_FILE_SIZE, fp);
-
-    char *new_buffer = realloc(buffer, file_size);
-
-    if (new_buffer != NULL) {
-        new_buffer[file_size] = 0;
-
-        buffer = new_buffer;
-    }
-
-    fclose(fp);
-
-    return buffer;
-}
-
 /* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
 void *read_input(void *arg) {
     struct discord *client = arg;
@@ -98,7 +65,7 @@ void *read_input(void *arg) {
     
     int commands_len = 0;
 
-    commands = (struct sr_command *) get_commands(&commands_len);
+    commands = (struct sr_command *) sr_get_commands(&commands_len);
 
     for (;;) {
         memset(context, 0, sizeof(context));

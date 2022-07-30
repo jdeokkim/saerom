@@ -102,10 +102,10 @@ static void sr_core_cleanup(void);
 static void sr_input_reader_init(void);
 
 /* Discord 봇의 명령어들을 생성한다. */
-static void create_commands(struct discord *client);
+static void sr_create_commands(struct discord *client);
 
 /* Discord 봇의 명령어들에 할당된 메모리를 해제한다. */
-static void release_commands(struct discord *client);
+static void sr_release_commands(struct discord *client);
 
 /* Discord 봇을 초기화한다. */
 void sr_bot_init(int argc, char *argv[]) {
@@ -119,12 +119,12 @@ void sr_bot_init(int argc, char *argv[]) {
     discord_set_on_ready(client, on_ready);
     discord_set_on_interaction_create(client, on_interaction_create);
 
-    create_commands(client);
+    sr_create_commands(client);
 }
 
 /* Discord 봇에 할당된 메모리를 해제한다. */
 void sr_bot_cleanup(void) {
-    release_commands(client);
+    sr_release_commands(client);
 
     sr_core_cleanup();
     
@@ -141,24 +141,24 @@ void sr_bot_run(void) {
 }
 
 /* Discord 봇의 클라이언트 객체를 반환한다. */
-struct discord *get_client(void) {
+struct discord *sr_get_client(void) {
     return client;
 }
 
 /* `CURLV` 인터페이스를 반환한다. */
-void *get_curlv(void) {
+void *sr_get_curlv(void) {
     return (void *) curlv;
 }
 
 /* Discord 봇의 명령어 목록을 반환한다. */
-const struct sr_command *get_commands(int *len) {
+const struct sr_command *sr_get_commands(int *len) {
     if (len != NULL) *len = sizeof(commands) / sizeof(*commands);
 
     return commands;
 }
 
 /* Discord 봇의 CPU 사용량 (단위: 퍼센트)을 반환한다. */
-double get_cpu_usage(void) {
+double sr_get_cpu_usage(void) {
     sigar_proc_cpu_t cpu;
 
     sigar_proc_cpu_get(
@@ -171,7 +171,7 @@ double get_cpu_usage(void) {
 }
 
 /* Discord 봇의 메모리 사용량 (단위: 메가바이트)을 반환한다. */
-double get_ram_usage(void) {
+double sr_get_ram_usage(void) {
     static const double DENOMINATOR = 1.0 / (1024.0 * 1024.0);
 
     sigar_proc_mem_t mem;
@@ -186,7 +186,7 @@ double get_ram_usage(void) {
 }
 
 /* Discord 봇의 작동 시간 (단위: 밀리초)을 반환한다. */
-uint64_t get_uptime(void) {
+uint64_t sr_get_uptime(void) {
     return discord_timestamp(client) - timestamp;
 }
 
@@ -346,7 +346,7 @@ static void sr_input_reader_init(void) {
 }
 
 /* Discord 봇의 명령어들을 생성한다. */
-static void create_commands(struct discord *client) {
+static void sr_create_commands(struct discord *client) {
     const int commands_len = sizeof(commands) / sizeof(*commands);
 
     const u64bitmask module_flags = sr_config_get_module_flags();
@@ -366,7 +366,7 @@ static void create_commands(struct discord *client) {
 }
 
 /* Discord 봇의 명령어들에 할당된 메모리를 해제한다. */
-static void release_commands(struct discord *client) {
+static void sr_release_commands(struct discord *client) {
     const int commands_len = sizeof(commands) / sizeof(*commands);
 
     const u64bitmask module_flags = sr_config_get_module_flags();

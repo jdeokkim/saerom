@@ -65,9 +65,9 @@ static void _sr_config_init(
 
 /* Discord 봇의 환경 설정을 초기화한다. */
 void sr_config_init(void) {
-    if (get_client() == NULL) return;
+    if (sr_get_client() == NULL) return;
 
-    struct discord *client = get_client();
+    struct discord *client = sr_get_client();
 
     pthread_mutex_init(&config.lock, NULL);
 

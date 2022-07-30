@@ -57,10 +57,10 @@ void sr_command_info_run(
     char ping_str[MAX_STRING_SIZE];
     char flags_str[MAX_STRING_SIZE];
     
-    time_t uptime_in_seconds = get_uptime() * 0.001f;
+    const time_t uptime_in_seconds = sr_get_uptime() * 0.001f;
 
-    snprintf(cpu_usage_str, sizeof(cpu_usage_str), "%.1f%%", get_cpu_usage());
-    snprintf(ram_usage_str, sizeof(ram_usage_str), "%.1fMB", get_ram_usage());
+    snprintf(cpu_usage_str, sizeof(cpu_usage_str), "%.1f%%", sr_get_cpu_usage());
+    snprintf(ram_usage_str, sizeof(ram_usage_str), "%.1fMB", sr_get_ram_usage());
 
     strftime(uptime_str, sizeof(uptime_str), "%T", gmtime(&uptime_in_seconds));
     snprintf(ping_str, sizeof(ping_str), "%dms", discord_get_ping(client));

@@ -188,7 +188,7 @@ void sr_command_papago_run(
 
     request.user_data = context;
 
-    curlv_create_request(get_curlv(), &request);
+    curlv_create_request(sr_get_curlv(), &request);
 
     discord_create_interaction_response(
         client, 
@@ -247,7 +247,7 @@ static void on_response(CURLV_STR res, void *user_data) {
         }
     }
 
-    struct discord *client = get_client();
+    struct discord *client = sr_get_client();
 
     struct discord_embed embeds[] = {
         {
@@ -293,7 +293,7 @@ static void handle_error(struct papago_context *context, const char *code) {
         code
     );
 
-    struct discord *client = get_client();
+    struct discord *client = sr_get_client();
 
     struct discord_embed embeds[] = {
         {

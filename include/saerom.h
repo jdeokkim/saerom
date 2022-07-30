@@ -27,7 +27,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.3.2-dev"
+#define APPLICATION_VERSION      "v0.3.2"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -73,22 +73,22 @@ void sr_bot_cleanup(void);
 void sr_bot_run(void);
 
 /* Discord 봇의 클라이언트 객체를 반환한다. */
-struct discord *get_client(void);
+struct discord *sr_get_client(void);
 
 /* `CURLV` 인터페이스를 반환한다. */
-void *get_curlv(void);
+void *sr_get_curlv(void);
 
 /* Discord 봇의 명령어 목록을 반환한다. */
-const struct sr_command *get_commands(int *len);
+const struct sr_command *sr_get_commands(int *len);
 
 /* Discord 봇의 CPU 사용량 (단위: 퍼센트)을 반환한다. */
-double get_cpu_usage(void);
+double sr_get_cpu_usage(void);
 
 /* Discord 봇의 메모리 사용량 (단위: 메가바이트)을 반환한다. */
-double get_ram_usage(void);
+double sr_get_ram_usage(void);
 
 /* Discord 봇의 작동 시간 (단위: 밀리초)을 반환한다. */
-uint64_t get_uptime(void);
+uint64_t sr_get_uptime(void);
 
 /* | `config` 모듈 함수... | */
 
@@ -200,9 +200,6 @@ void sr_command_papago_run(
 
 /* 주어진 사용자의 프로필 사진 URL을 반환한다. */
 const char *get_avatar_url(const struct discord_user *user);
-
-/* 주어진 경로에 위치한 파일의 내용을 반환한다. */
-char *get_file_contents(const char *path);
 
 /* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
 void *read_input(void *arg);
