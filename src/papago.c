@@ -125,7 +125,7 @@ void sr_command_papago_run(
         return;
     }
     
-    char *text = "", *source = "ko", *target = "en";
+    char *text = "", *source = "en", *target = "ko";
 
     for (int i = 0; i < event->data->options->size; i++) {
         char *name = event->data->options->array[i].name;
@@ -216,7 +216,7 @@ void sr_command_papago_run(
 
     snprintf(
         buffer, 
-        sizeof(buffer), 
+        sizeof(buffer),
         "X-Naver-Client-Secret: %s",
         sr_config_get_papago_client_secret()
     );
@@ -355,8 +355,6 @@ static void handle_error(struct papago_context *context, const char *code) {
     else if (streq(code, "N2MT05"))
         embeds[0].description = "Target language must not be the same as the "
                                 "source language.";
-    else if (streq(code, "N2MT08"))
-        embeds[0].description = "The length of the `text` parameter is too long.";
     else
         embeds[0].description = "An unknown error has occured while processing "
                                 "your request.";

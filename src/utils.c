@@ -38,7 +38,7 @@ const char *get_avatar_url(const struct discord_user *user) {
         snprintf(
             buffer, 
             MAX_STRING_SIZE,
-            "https://cdn.discordapp.com/avatars/%"SCNu64"/%s.webp",
+            "https://cdn.discordapp.com/avatars/%" PRIu64 "/%s.webp",
             user->id,
             user->avatar
         );
@@ -46,7 +46,7 @@ const char *get_avatar_url(const struct discord_user *user) {
         snprintf(
             buffer, 
             MAX_STRING_SIZE,
-            "https://cdn.discordapp.com/embed/avatars/%"SCNu64".png",
+            "https://cdn.discordapp.com/embed/avatars/%" PRIu64 ".png",
             strtoul(user->discriminator, NULL, 10) % DISCORD_MAGIC_NUMBER
         );
     }
@@ -70,7 +70,7 @@ void *read_input(void *arg) {
 
         if (fgets(context, sizeof(context), stdin)) ;
 
-        context[strcspn(context, "\r\n")] = 0;
+        context[strcspn(context, "\r\n")] = '\0';
 
         if (*context == '\0') continue;
 
@@ -101,11 +101,10 @@ size_t utf8len(const char *str) {
     size_t result = 0;
 
     // 첫 번째 바이트만 확인한다.
-    for (const char *c = str; *c; c++) {
+    for (const char *c = str; *c != '\0'; c++) {
         if ((*c & 0xf8) == 0xf0) c += 3;
         else if ((*c & 0xf0) == 0xe0) c += 2;
         else if ((*c & 0xe0) == 0xc0) c += 1;
-        else ;
         
         result++;
     }

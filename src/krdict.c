@@ -311,10 +311,7 @@ static void on_message_failure(
 
 /* 개인 메시지 전송이 끝났을 때 호출되는 함수. */
 static void on_message_complete(struct discord *client, void *data) {
-    struct discord_interaction *event = data;
-
-    free(event->token);
-    free(event);
+    discord_unclaim(client, (struct discord_interaction *) data);
 }
 
 /* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
@@ -341,15 +338,6 @@ static void on_component_interaction(
     if (result != CCORD_OK) return;
 
     discord_channel_cleanup(&ret_channel);
-
-    struct discord_interaction *event_clone = malloc(
-        sizeof(struct discord_interaction)
-    );
-
-    event_clone->id = event->id;
-    event_clone->token = malloc(strlen(event->token) + 1);
-
-    strcpy(event_clone->token, event->token);
     
     discord_create_message(
         client, 
@@ -358,7 +346,7 @@ static void on_component_interaction(
             .embeds = event->message->embeds
         },
         &(struct discord_ret_message) {
-            .data = event_clone,
+            .data = (void *) discord_claim(client, event),
             .cleanup = on_message_complete,
             .done = on_message_success,
             .fail = on_message_failure
@@ -378,7 +366,9 @@ static void on_response(CURLV_STR res, void *user_data) {
     log_info(
         "[SAEROM] Received %ld bytes from \"%s\"", 
         res.len,
-        request_url_check ? URMS_REQUEST_URL : KRDICT_REQUEST_URL
+        request_url_check 
+            ? URMS_REQUEST_URL 
+            : KRDICT_REQUEST_URL
     );
 
     yxml_t *parser = malloc(sizeof(yxml_t) + res.len);

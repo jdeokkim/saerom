@@ -193,8 +193,6 @@ uint64_t sr_get_uptime(void) {
 /* Discord 봇이 대기 중일 때 주기적으로 호출된다. */
 static void on_idle(struct discord *client) {
     if (!(sr_config_get_status_flags() & SR_STATUS_RUNNING)) {
-        sr_config_set_status_flags(0);
-
         log_info("[SAEROM] Shutting down the bot");
 
         sr_bot_cleanup();
@@ -230,7 +228,7 @@ static void on_ready(
         {
             .name = "/info (" APPLICATION_VERSION ")",
             .type = DISCORD_ACTIVITY_GAME,
-        },
+        }
     };
 
     timestamp = discord_timestamp(client);
@@ -238,7 +236,7 @@ static void on_ready(
     struct discord_presence_update status = {
         .activities = &(struct discord_activities) {
             .size = sizeof(activities) / sizeof(*activities),
-            .array = activities,
+            .array = activities
         },
         .status = "online",
         .afk = false,
@@ -297,12 +295,9 @@ static void on_interaction_create(
                 user->discriminator
             );
 
-            for (int i = 0; i < sizeof(commands) / sizeof(*commands); i++) {
-                const char *name = commands[i].name;
-
-                if (strncmp(context, name, strlen(name)) == 0) 
+            for (int i = 0; i < sizeof(commands) / sizeof(*commands); i++)
+                if (strncmp(context, commands[i].name, strlen(commands[i].name)) == 0)
                     commands[i].on_run(client, event);
-            }
 
             break;
     }
