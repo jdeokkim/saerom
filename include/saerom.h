@@ -33,8 +33,9 @@
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
-#define DEVELOPER_NAME           "Jaedeok Kim"
-#define DEVELOPER_ICON_URL       "https://avatars.githubusercontent.com/u/28700668"
+#define REQUEST_URL_KRDICT       "https://krdict.korean.go.kr/api/search"
+#define REQUEST_URL_OPDICT       "https://opendict.korean.go.kr/api/search"
+#define REQUEST_URL_PAPAGO       "https://openapi.naver.com/v1/papago/n2mt"
 
 #define MAX_STRING_SIZE          1024
 #define MAX_TEXT_LENGTH          256
@@ -50,6 +51,13 @@ struct sr_command {
         struct discord *client,
         const struct discord_interaction *event
     );
+};
+
+/* Discord 봇의 명령어 실행 정보를 나타내는 구조체. */
+struct sr_command_context {
+    const struct discord_interaction *event;
+    u64bitmask flags;
+    void *data;
 };
 
 /* Discord 봇의 모듈 플래그를 나타내는 열거형. */
@@ -118,10 +126,10 @@ const char *sr_config_get_krd_api_key(void);
 /* Discord 봇의 국립국어원 우리말샘 API 키를 반환한다. */
 const char *sr_config_get_urms_api_key(void);
 
-/* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 ID를 반환한다. */
+/* Discord 봇의 NAVER™ Papago NMT API 클라이언트 ID를 반환한다. */
 const char *sr_config_get_papago_client_id(void);
 
-/* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 시크릿을 반환한다. */
+/* Discord 봇의 NAVER™ Papago NMT API 클라이언트 시크릿을 반환한다. */
 const char *sr_config_get_papago_client_secret(void);
 
 /* Discord 봇의 모듈 플래그 데이터를 `flags`로 설정한다. */

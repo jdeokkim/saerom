@@ -23,19 +23,12 @@
 
 #include "saerom.h"
 
-#define KRDICT_REQUEST_URL    "https://krdict.korean.go.kr/api/search"
-#define URMS_REQUEST_URL      "https://opendict.korean.go.kr/api/search"
+/* | `krdict` 모듈 매크로 정의... | */
 
 #define MAX_EXAMPLE_COUNT     10
 #define MAX_ORDER_COUNT       7
 
 /* | `krdict` 모듈 자료형 정의... | */
-
-/* `/krd` 명령어의 실행 정보를 나타내는 구조체. */
-struct krdict_context {
-    const struct discord_interaction *event;
-    u64bitmask flags;
-};
 
 /* `/krd` 명령어의 조건 플래그를 나타내는 열거형. */
 enum krdict_flag {
@@ -126,7 +119,7 @@ static void on_component_interaction(
 static void on_response(CURLV_STR res, void *user_data);
 
 /* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct krdict_context *context, const char *code);
+static void handle_error(struct sr_command_context *context, const char *code);
 
 /* `/krd` 명령어를 생성한다. */
 void sr_command_krdict_init(struct discord *client) {
@@ -209,7 +202,7 @@ void sr_command_krdict_create_request(
             (streq(part, "word")) ? "y" : "n"
         );
 
-        curl_easy_setopt(request.easy, CURLOPT_URL, URMS_REQUEST_URL);
+        curl_easy_setopt(request.easy, CURLOPT_URL, REQUEST_URL_OPDICT);
     } else {
         snprintf(
             buffer, 
@@ -221,7 +214,7 @@ void sr_command_krdict_create_request(
             (streq(part, "word")) ? "y" : "n"
         );
 
-        curl_easy_setopt(request.easy, CURLOPT_URL, KRDICT_REQUEST_URL);
+        curl_easy_setopt(request.easy, CURLOPT_URL, REQUEST_URL_KRDICT);
     }
 
     curl_easy_setopt(request.easy, CURLOPT_POSTFIELDSIZE, strlen(buffer));
@@ -229,7 +222,7 @@ void sr_command_krdict_create_request(
     curl_easy_setopt(request.easy, CURLOPT_SSL_VERIFYPEER, false);
     curl_easy_setopt(request.easy, CURLOPT_POST, 1);
 
-    struct krdict_context *context = malloc(sizeof(struct krdict_context));
+    struct sr_command_context *context = malloc(sizeof(struct sr_command_context));
 
     context->event = discord_claim(client, event);
 
@@ -553,7 +546,7 @@ static void on_component_interaction(
 static void on_response(CURLV_STR res, void *user_data) {
     if (res.str == NULL || user_data == NULL) return;
 
-    struct krdict_context *context = (struct krdict_context *) user_data;
+    struct sr_command_context *context = (struct sr_command_context *) user_data;
 
     bool request_url_check = (context->flags & KRD_FLAG_PART_EXAM)
         || !(context->flags & KRD_FLAG_TRANSLATED);
@@ -562,8 +555,8 @@ static void on_response(CURLV_STR res, void *user_data) {
         "[SAEROM] Received %ld bytes from \"%s\"", 
         res.len,
         request_url_check 
-            ? URMS_REQUEST_URL 
-            : KRDICT_REQUEST_URL
+            ? REQUEST_URL_OPDICT 
+            : REQUEST_URL_KRDICT
     );
 
     char buffer[DISCORD_EMBED_DESCRIPTION_LEN] = "";
@@ -574,21 +567,6 @@ static void on_response(CURLV_STR res, void *user_data) {
         sizeof(buffer), 
         context->flags
     );
-
-    struct discord *client = sr_get_client();
-
-    struct discord_embed embeds[] = {
-        {
-            .title = "Results",
-            .description = "No results found.",
-            .timestamp = discord_timestamp(client),
-            .footer = &(struct discord_embed_footer) {
-                .text = "🗒️"
-            }
-        }
-    };
-
-    if (total > 0) embeds[0].description = buffer;
 
     struct discord_component buttons[] = {
         {
@@ -609,15 +587,28 @@ static void on_response(CURLV_STR res, void *user_data) {
         },
     };
 
+    struct discord *client = sr_get_client();
+
+    struct discord_embed embeds[] = {
+        {
+            .title = "Results",
+            .description = "No results found.",
+            .timestamp = discord_timestamp(client),
+            .footer = &(struct discord_embed_footer) {
+                .text = "🗒️"
+            }
+        }
+    };
+
+    if (total > 0) embeds[0].description = buffer;
+
     discord_edit_original_interaction_response(
         client,
         sr_config_get_application_id(),
         context->event->token,
         &(struct discord_edit_original_interaction_response) {
             .components = &(struct discord_components){
-                .size = (total > 0) 
-                    ? sizeof(action_rows) / sizeof(*action_rows)
-                    : 0,
+                .size = (total > 0) ? sizeof(action_rows) / sizeof(*action_rows) : 0,
                 .array = action_rows
             },
             .embeds = &(struct discord_embeds) {
@@ -634,7 +625,7 @@ static void on_response(CURLV_STR res, void *user_data) {
 }
 
 /* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct krdict_context *context, const char *code) {
+static void handle_error(struct sr_command_context *context, const char *code) {
     if (context == NULL || code == NULL) return; 
 
     log_warn(

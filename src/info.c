@@ -19,6 +19,11 @@
 
 #include <saerom.h>
 
+/* | `info` 모듈 매크로 정의... | */
+
+#define DEVELOPER_NAME           "Jaedeok Kim"
+#define DEVELOPER_ICON_URL       "https://avatars.githubusercontent.com/u/28700668"
+
 /* | `info` 모듈 상수 및 변수... | */
 
 /* `/info` 명령어에 대한 정보. */

@@ -186,12 +186,12 @@ const char *sr_config_get_urms_api_key(void) {
     return config.krdict.urms_api_key;
 }
 
-/* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 ID를 반환한다. */
+/* Discord 봇의 NAVER™ Papago NMT API 클라이언트 ID를 반환한다. */
 const char *sr_config_get_papago_client_id(void) {
     return config.papago.client_id;
 }
 
-/* Discord 봇의 NAVER™ 파파고 NMT API 클라이언트 시크릿을 반환한다. */
+/* Discord 봇의 NAVER™ Papago NMT API 클라이언트 시크릿을 반환한다. */
 const char *sr_config_get_papago_client_secret(void) {
     return config.papago.client_secret;
 }

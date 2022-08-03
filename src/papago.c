@@ -23,16 +23,6 @@
 
 #include <saerom.h>
 
-#define PAPAGO_REQUEST_URL      "https://openapi.naver.com/v1/papago/n2mt"
-
-/* | `papago` 모듈 자료형 정의... | */
-
-/* `/ppg` 명령어의 실행 정보를 나타내는 구조체. */
-struct papago_context {
-    const struct discord_interaction *event;
-    char *text;
-};
-
 /* | `papago` 모듈 상수 및 변수... | */
 
 /* `/ppg` 명령어의 원본 언어 및 목적 언어 목록.*/
@@ -83,7 +73,8 @@ static struct discord_application_command_option options[] = {
 /* `/ppg` 명령어에 대한 정보. */
 static struct discord_create_global_application_command params = {
     .name = "ppg",
-    .description = "Translate the given text between two languages using NAVER™ Papago NMT API",
+    .description = "Translate the given text between two languages using "
+                   "NAVER™ Papago NMT API",
     .default_permission = true,
     .options = &(struct discord_application_command_options) {
         .size = sizeof(options) / sizeof(*options),
@@ -93,11 +84,20 @@ static struct discord_create_global_application_command params = {
 
 /* | `papago` 모듈 함수... | */
 
-/* 요청 URL에서 응답을 받았을 때 호출되는 함수. */
-static void on_response(CURLV_STR res, void *user_data);
+/* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
+static void on_component_interaction(
+    struct discord *client,
+    const struct discord_interaction *event
+);
+
+/* 국립국어원 한국어기초사전 API로부터 응답을 받았을 때 호출되는 함수. */
+static void on_response_from_krdict(CURLV_STR res, void *user_data);
+
+/* NAVER™ Papago NMT API로부터 응답을 받았을 때 호출되는 함수. */
+static void on_response_from_papago(CURLV_STR res, void *user_data);
 
 /* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct papago_context *context, const char *code);
+static void handle_error(struct sr_command_context *context, const char *code);
 
 /* `/ppg` 명령어를 생성한다. */
 void sr_command_papago_init(struct discord *client) {
@@ -121,6 +121,10 @@ void sr_command_papago_run(
 ) {
     if (event == NULL) {
         log_error("[SAEROM] This command cannot be run in the console.");
+
+        return;
+    } else if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) {
+        on_component_interaction(client, event);
 
         return;
     }
@@ -182,7 +186,7 @@ void sr_command_papago_run(
         return;
     }
 
-    CURLV_REQ request = { .callback = on_response };
+    CURLV_REQ request = { .callback = on_response_from_papago };
 
     request.easy = curl_easy_init();
 
@@ -195,7 +199,7 @@ void sr_command_papago_run(
         text
     );
 
-    curl_easy_setopt(request.easy, CURLOPT_URL, PAPAGO_REQUEST_URL);
+    curl_easy_setopt(request.easy, CURLOPT_URL, REQUEST_URL_PAPAGO);
     curl_easy_setopt(request.easy, CURLOPT_POSTFIELDSIZE, strlen(buffer));
     curl_easy_setopt(request.easy, CURLOPT_COPYPOSTFIELDS, buffer);
     curl_easy_setopt(request.easy, CURLOPT_POST, 1);
@@ -223,12 +227,12 @@ void sr_command_papago_run(
 
     request.header = curl_slist_append(request.header, buffer);
 
-    struct papago_context *context = malloc(sizeof(struct papago_context));
+    struct sr_command_context *context = malloc(sizeof(struct sr_command_context));
 
     context->event = discord_claim(client, event);
-    context->text = malloc((strlen(text) + 1) * sizeof(char));
+    context->data = malloc((strlen(text) + 1) * sizeof(char));
 
-    strcpy(context->text, text);
+    strcpy(context->data, text);
 
     request.user_data = context;
 
@@ -245,17 +249,118 @@ void sr_command_papago_run(
     );
 }
 
-/* 요청 URL에서 응답을 받았을 때 호출되는 함수. */
-static void on_response(CURLV_STR res, void *user_data) {
+/* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
+static void on_component_interaction(
+    struct discord *client,
+    const struct discord_interaction *event
+) {
+    struct discord_embed *embeds = event->message->embeds->array;
+    struct discord_embed_field *fields = embeds->fields->array;
+
+    const char *query = fields[1].value;
+
+    sr_command_krdict_create_request(
+        client, 
+        event, 
+        on_response_from_krdict, 
+        query, 
+        "word", 
+        "true"
+    );
+
+    discord_create_interaction_response(
+        client, 
+        event->id, 
+        event->token, 
+        &(struct discord_interaction_response) {
+            .type = DISCORD_INTERACTION_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+        },
+        NULL
+    );
+}
+
+/* 국립국어원 한국어기초사전 API로부터 응답을 받았을 때 호출되는 함수. */
+static void on_response_from_krdict(CURLV_STR res, void *user_data) {
+    struct sr_command_context *context = (struct sr_command_context *) user_data;
+
+    log_info("[SAEROM] Received %ld bytes from \"%s\"", res.len, REQUEST_URL_KRDICT);
+
+    char buffer[DISCORD_EMBED_DESCRIPTION_LEN] = "";
+
+    int total = sr_command_krdict_parse_data(
+        res, 
+        buffer, 
+        sizeof(buffer), 
+        context->flags
+    );
+
+    struct discord_component buttons[] = {
+        {
+            .type = DISCORD_COMPONENT_BUTTON,
+            .style = DISCORD_BUTTON_SECONDARY,
+            .label = "🔖 Bookmark",
+            .custom_id = "krd_btn_uwu"
+        }
+    };
+
+    struct discord_component action_rows[] = {
+        {
+            .type = DISCORD_COMPONENT_ACTION_ROW,
+            .components = &(struct discord_components){
+                .size = sizeof(buttons) / sizeof(*buttons),
+                .array = buttons
+            }
+        },
+    };
+
+    struct discord *client = sr_get_client();
+
+    struct discord_embed embeds[] = {
+        {
+            .title = "Results",
+            .description = "No results found.",
+            .timestamp = discord_timestamp(client),
+            .footer = &(struct discord_embed_footer) {
+                .text = "🗒️"
+            }
+        }
+    };
+
+    if (total > 0) embeds[0].description = buffer;
+
+    discord_edit_original_interaction_response(
+        client,
+        sr_config_get_application_id(),
+        context->event->token,
+        &(struct discord_edit_original_interaction_response) {
+            .components = &(struct discord_components){
+                .size = (total > 0) ? sizeof(action_rows) / sizeof(*action_rows) : 0,
+                .array = action_rows
+            },
+            .embeds = &(struct discord_embeds) {
+                .size = sizeof(embeds) / sizeof(*embeds),
+                .array = embeds
+            }
+        },
+        NULL
+    );
+
+    discord_unclaim(client, context->event);
+
+    free(context);
+}
+
+/* NAVER™ Papago NMT API로부터 응답을 받았을 때 호출되는 함수. */
+static void on_response_from_papago(CURLV_STR res, void *user_data) {
     if (res.str == NULL || user_data == NULL) return;
 
-    log_info("[SAEROM] Received %ld bytes from \"%s\"", res.len, PAPAGO_REQUEST_URL);
+    log_info("[SAEROM] Received %ld bytes from \"%s\"", res.len, REQUEST_URL_PAPAGO);
 
     JsonNode *root = json_decode(res.str);
 
     JsonNode *node = json_find_member(root, "errorCode");
 
-    struct papago_context *context = (struct papago_context *) user_data;
+    struct sr_command_context *context = (struct sr_command_context *) user_data;
     
     if (node != NULL) {
         handle_error(context, node->string_);
@@ -269,7 +374,7 @@ static void on_response(CURLV_STR res, void *user_data) {
     node = json_find_member(node, "result");
 
     struct discord_embed_field fields[2] = {
-        [0] = { .value = context->text }
+        [0] = { .value = context->data }
     };
 
     char source_field_name[MAX_STRING_SIZE] = "";
@@ -290,6 +395,25 @@ static void on_response(CURLV_STR res, void *user_data) {
             fields[1].value = i->string_;
         }
     }
+
+     struct discord_component buttons[] = {
+        {
+            .type = DISCORD_COMPONENT_BUTTON,
+            .style = DISCORD_BUTTON_SECONDARY,
+            .label = "🗒️ Dictionary",
+            .custom_id = "ppg_btn_uwu"
+        }
+    };
+
+    struct discord_component action_rows[] = {
+        {
+            .type = DISCORD_COMPONENT_ACTION_ROW,
+            .components = &(struct discord_components){
+                .size = sizeof(buttons) / sizeof(*buttons),
+                .array = buttons
+            }
+        },
+    };
 
     struct discord *client = sr_get_client();
 
@@ -312,6 +436,10 @@ static void on_response(CURLV_STR res, void *user_data) {
         sr_config_get_application_id(),
         context->event->token,
         &(struct discord_edit_original_interaction_response) {
+            .components = &(struct discord_components){
+                .size = sizeof(action_rows) / sizeof(*action_rows),
+                .array = action_rows
+            },
             .embeds = &(struct discord_embeds) {
                 .size = sizeof(embeds) / sizeof(*embeds),
                 .array = embeds
@@ -322,20 +450,17 @@ static void on_response(CURLV_STR res, void *user_data) {
 
     discord_unclaim(client, context->event);
 
-    free(context->text);
+    free(context->data);
     free(context);
 
     json_delete(root);
 }
 
 /* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct papago_context *context, const char *code) {
+static void handle_error(struct sr_command_context *context, const char *code) {
     if (context == NULL || code == NULL) return;
 
-    log_warn(
-        "[SAEROM] An error (`%s`) has occured while processing the request",
-        code
-    );
+    log_warn("[SAEROM] An error (`%s`) has occured while processing the request", code);
 
     struct discord *client = sr_get_client();
 
@@ -374,6 +499,6 @@ static void handle_error(struct papago_context *context, const char *code) {
 
     discord_unclaim(client, context->event);
 
-    free(context->text);
+    free(context->data);
     free(context);
 }
