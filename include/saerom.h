@@ -29,12 +29,12 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.4.0-dev"
+#define APPLICATION_VERSION      "v0.4.0"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
 #define REQUEST_URL_KRDICT       "https://krdict.korean.go.kr/api/search"
-#define REQUEST_URL_OPDICT       "https://opendict.korean.go.kr/api/search"
+#define REQUEST_URL_URMSAEM      "https://opendict.korean.go.kr/api/search"
 #define REQUEST_URL_PAPAGO       "https://openapi.naver.com/v1/papago/n2mt"
 
 #define MAX_STRING_SIZE          1024

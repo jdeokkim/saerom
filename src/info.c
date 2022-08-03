@@ -19,11 +19,6 @@
 
 #include <saerom.h>
 
-/* | `info` 모듈 매크로 정의... | */
-
-#define DEVELOPER_NAME           "Jaedeok Kim"
-#define DEVELOPER_ICON_URL       "https://avatars.githubusercontent.com/u/28700668"
-
 /* | `info` 모듈 상수 및 변수... | */
 
 /* `/info` 명령어에 대한 정보. */
@@ -136,10 +131,6 @@ void sr_command_info_run(
             },
             .thumbnail = &(struct discord_embed_thumbnail) {
                 .url = (char *) get_avatar_url(discord_get_self(client))
-            },
-            .author = &(struct discord_embed_author) {
-                .name = DEVELOPER_NAME,
-                .icon_url = DEVELOPER_ICON_URL
             },
             .fields = &(struct discord_embed_fields) {
                 .size = sizeof(fields) / sizeof(*fields),

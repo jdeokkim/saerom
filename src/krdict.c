@@ -194,7 +194,7 @@ void sr_command_krdict_create_request(
     if (streq(part, "exam") || streq(translated, "false")) {
         snprintf(
             buffer, 
-            DISCORD_MAX_MESSAGE_LEN, 
+            sizeof(buffer), 
             "key=%s&q=%s&part=%s&advanced=%s",
             sr_config_get_urms_api_key(),
             query,
@@ -202,11 +202,11 @@ void sr_command_krdict_create_request(
             (streq(part, "word")) ? "y" : "n"
         );
 
-        curl_easy_setopt(request.easy, CURLOPT_URL, REQUEST_URL_OPDICT);
+        curl_easy_setopt(request.easy, CURLOPT_URL, REQUEST_URL_URMSAEM);
     } else {
         snprintf(
             buffer, 
-            DISCORD_MAX_MESSAGE_LEN, 
+            sizeof(buffer), 
             "key=%s&q=%s&part=%s&advanced=%s&translated=y&trans_lang=1",
             sr_config_get_krd_api_key(),
             query,
@@ -555,7 +555,7 @@ static void on_response(CURLV_STR res, void *user_data) {
         "[SAEROM] Received %ld bytes from \"%s\"", 
         res.len,
         request_url_check 
-            ? REQUEST_URL_OPDICT 
+            ? REQUEST_URL_URMSAEM 
             : REQUEST_URL_KRDICT
     );
 
