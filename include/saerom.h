@@ -24,18 +24,20 @@
 #include <concord/discord.h>
 #include <concord/log.h>
 
+#include <curlv.h>
+
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.3.4"
+#define APPLICATION_VERSION      "v0.4.0-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
 #define DEVELOPER_NAME           "Jaedeok Kim"
 #define DEVELOPER_ICON_URL       "https://avatars.githubusercontent.com/u/28700668"
 
-#define MAX_STRING_SIZE           256
-#define MAX_TEXT_LENGTH           256
+#define MAX_STRING_SIZE          1024
+#define MAX_TEXT_LENGTH          256
 
 /* | 자료형 정의... | */
 
@@ -154,6 +156,24 @@ void sr_command_krdict_cleanup(struct discord *client);
 void sr_command_krdict_run(
     struct discord *client,
     const struct discord_interaction *event
+);
+
+/* /`krd` 명령어의 오픈 API 요청을 생성한다. */
+void sr_command_krdict_create_request(
+    struct discord *client,
+    const struct discord_interaction *event,
+    curlv_read_callback on_response,
+    const char *query,
+    const char *part,
+    const char *translated
+);
+
+/* `/krd` 명령어의 응답 데이터를 가공한다. */
+int sr_command_krdict_parse_data(
+    CURLV_STR xml, 
+    char *buffer, 
+    size_t size,
+    u64bitmask flags
 );
 
 /* | `owner` 모듈 함수... | */

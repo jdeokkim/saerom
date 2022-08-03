@@ -49,8 +49,8 @@ struct krdict_item {
     char origin[MAX_STRING_SIZE];
     char pos[MAX_STRING_SIZE];
     char link[MAX_STRING_SIZE];
-    char dfn[DISCORD_MAX_MESSAGE_LEN];
-    char exam[DISCORD_MAX_MESSAGE_LEN];
+    char dfn[2 * MAX_STRING_SIZE];
+    char exam[2 * MAX_STRING_SIZE];
 };
 
 /* | `krdict` 모듈 상수 및 변수... | */
@@ -72,7 +72,8 @@ static struct discord_application_command_option options[] = {
     {
         .type = DISCORD_APPLICATION_OPTION_STRING,
         .name = "part",
-        .description = "Which part of each entry to be shown (if 'Examples' is chosen, it will NOT be translated)",
+        .description = "Which part of each entry to be shown (if 'Examples' is chosen, it will"
+                       " NOT be translated)",
         .choices = &(struct discord_application_command_option_choices) {
             .size = sizeof(choices) / sizeof(*choices),
             .array = choices
@@ -88,7 +89,8 @@ static struct discord_application_command_option options[] = {
 /* `/krd` 명령어에 대한 정보. */
 static struct discord_create_global_application_command params = {
     .name = "krd",
-    .description = "Search the given text in the dictionaries published by the National Institute of Korean Language",
+    .description = "Search the given text in the dictionaries published by the National Institute"
+                   " of Korean Language",
     .default_permission = true,
     .options = &(struct discord_application_command_options) {
         .size = sizeof(options) / sizeof(*options),
@@ -167,6 +169,28 @@ void sr_command_krdict_run(
         else if (streq(name, "translated")) translated = value;
     }
 
+    sr_command_krdict_create_request(client, event, on_response, query, part, translated);
+
+    discord_create_interaction_response(
+        client, 
+        event->id, 
+        event->token, 
+        &(struct discord_interaction_response) {
+            .type = DISCORD_INTERACTION_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+        },
+        NULL
+    );
+}
+
+/* /`krd` 명령어의 오픈 API 요청을 생성한다. */
+void sr_command_krdict_create_request(
+    struct discord *client,
+    const struct discord_interaction *event,
+    curlv_read_callback on_response,
+    const char *query,
+    const char *part,
+    const char *translated
+) {
     CURLV_REQ request = { .callback = on_response };
 
     request.easy = curl_easy_init();
@@ -215,16 +239,187 @@ void sr_command_krdict_run(
     request.user_data = context;
 
     curlv_create_request(sr_get_curlv(), &request);
+}
 
-    discord_create_interaction_response(
-        client, 
-        event->id, 
-        event->token, 
-        &(struct discord_interaction_response) {
-            .type = DISCORD_INTERACTION_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
-        },
-        NULL
-    );
+/* `/krd` 명령어의 응답 데이터를 가공한다. */
+int sr_command_krdict_parse_data(
+    CURLV_STR xml, 
+    char *buffer, 
+    size_t size,
+    u64bitmask flags
+) {
+    if (xml.len == 0 || buffer == NULL) return 0;
+
+    yxml_t *parser = malloc(sizeof(yxml_t) + xml.len);
+
+    yxml_init(parser, parser + 1, xml.len);
+
+    struct krdict_item item = { .word = "" };
+
+    char content[DISCORD_MAX_MESSAGE_LEN] = "";
+
+    char *elem, *temp, *ptr;
+
+    int len, num, total, order = 1;
+
+    for (char *doc = xml.str; *doc; doc++) {
+        yxml_ret_t result = yxml_parse(parser, *doc);
+
+        if (result < 0) {
+            strncpy(buffer, "-1", size);
+
+            free(parser);
+
+            return -1;
+        }
+
+        switch (result) {
+            case YXML_ELEMSTART:
+                elem = parser->elem;
+                ptr = content;
+
+                break;
+
+            case YXML_CONTENT:
+                temp = parser->data;
+
+                while (*temp != 0) {
+                    if (*temp == '\n' || *temp == '\t') {
+                        temp++;
+
+                        continue;
+                    }
+
+                    *(ptr++) = *(temp++);
+                }
+
+                break;
+
+            case YXML_ELEMEND:
+                *ptr = 0;
+
+                if (streq(parser->elem, "error")) {
+                    strncpy(buffer, content, size);
+
+                    free(parser);
+
+                    return -1;
+                }
+
+                if (streq(parser->elem, "channel")) {
+                    if (streq(elem, "total")) {
+                        total = atoi(content);
+
+                        if (total <= 0) break;
+                    } else if (streq(elem, "num")) {
+                        num = atoi(content);
+
+                        if (total > num) total = num;
+                    }
+
+                    break;
+                }
+
+                // 검색 결과로 어휘를 출력할 경우?
+                if (!(flags & KRD_FLAG_PART_EXAM)) {
+                    if (order > MAX_ORDER_COUNT) break;
+
+                    if (streq(elem, "word"))
+                        strncpy(item.word, content, sizeof(item.word));
+                    else if (streq(elem, "pos"))
+                        strncpy(item.pos, content, sizeof(item.pos));
+                    else if (streq(elem, "link"))
+                        strncpy(item.link, content, sizeof(item.link));
+                    else if (streq(elem, "origin"))
+                        strncpy(item.origin, content, sizeof(item.origin));
+                    else if (streq(elem, "sense_order") || streq(elem, "sense_no"))
+                        order = atoi(content);
+                    else if (streq(elem, "definition") || streq(elem, "trans_word"))
+                        strncpy(item.dfn, content, sizeof(item.dfn));
+                    else if (streq(elem, "trans_dfn"))
+                        strncpy(item.exam, content, sizeof(item.exam));
+                    else if (streq(elem, "sense")) {
+                        char *item_pos = strlen(item.pos) > 0 ? item.pos : "?";
+
+                        len = strlen(buffer);
+
+                        if (strlen(item.origin) > 0) {
+                            snprintf(
+                                buffer + len, 
+                                size - len,
+                                "[**%s (%s) 「%s」**](%s)\n\n",
+                                item.word,
+                                item.origin,
+                                item_pos,
+                                item.link
+                            );
+                        } else {
+                            snprintf(
+                                buffer + len, 
+                                size - len,
+                                "[**%s 「%s」**](%s)\n\n",
+                                item.word,
+                                item_pos,
+                                item.link
+                            );
+                        }
+
+                        len = strlen(buffer);
+
+                        if (flags & KRD_FLAG_TRANSLATED) {
+                            snprintf(
+                                buffer + len, 
+                                size - len,
+                                "**%d. %s**\n"
+                                "- %s\n\n",
+                                order,
+                                item.dfn,
+                                item.exam
+                            );
+                        } else {
+                            snprintf(
+                                buffer + len, 
+                                size - len,
+                                "- %s\n\n",
+                                item.dfn
+                            );
+                        }
+                    }
+                } else {
+                    if (order > MAX_EXAMPLE_COUNT) break;
+
+                    if (streq(elem, "word"))
+                        strncpy(item.word, content, sizeof(item.word));
+                    else if (streq(elem, "example"))
+                        strncpy(item.exam, content, sizeof(item.exam));
+                    else if (streq(elem, "link")) {
+                        strncpy(item.link, content, sizeof(item.link));
+
+                        len = strlen(buffer);
+
+                        snprintf(
+                            buffer + len, 
+                            size - len,
+                            "%d. %s\n\n",
+                            order,
+                            item.exam
+                        );
+
+                        order++;
+                    }
+                }
+
+                elem = parser->elem;
+
+                break;
+        }
+
+        if (total <= 0) break;
+    }
+
+    free(parser);
+
+    return total;
 }
 
 /* 개인 메시지 전송에 성공했을 때 호출되는 함수. */
@@ -371,182 +566,14 @@ static void on_response(CURLV_STR res, void *user_data) {
             : KRDICT_REQUEST_URL
     );
 
-    yxml_t *parser = malloc(sizeof(yxml_t) + res.len);
-
-    yxml_init(parser, parser + 1, res.len);
-
-    struct krdict_item item = { .word = "" };
-
     char buffer[DISCORD_EMBED_DESCRIPTION_LEN] = "";
-    char content[DISCORD_MAX_MESSAGE_LEN] = "";
 
-    char *elem, *temp, *ptr;
-
-    int len, num, total, order = 1;
-
-    for (char *doc = res.str; *doc; doc++) {
-        yxml_ret_t result = yxml_parse(parser, *doc);
-
-        if (result < 0) {
-            handle_error(context, "-1");
-
-            free(parser);
-
-            return;
-        }
-
-        switch (result) {
-            case YXML_ELEMSTART:
-                elem = parser->elem;
-                ptr = content;
-
-                break;
-
-            case YXML_CONTENT:
-                temp = parser->data;
-
-                while (*temp != 0) {
-                    if (*temp == '\n' || *temp == '\t') {
-                        temp++;
-
-                        continue;
-                    }
-
-                    *(ptr++) = *(temp++);
-                }
-
-                break;
-
-            case YXML_ELEMEND:
-                *ptr = 0;
-
-                if (streq(parser->elem, "error")) {
-                    handle_error(context, content);
-
-                    free(parser);
-
-                    return;
-                }
-
-                if (streq(parser->elem, "channel")) {
-                    if (streq(elem, "total")) {
-                        total = atoi(content);
-
-                        if (total <= 0) break;
-                    } else if (streq(elem, "num")) {
-                        num = atoi(content);
-
-                        if (total > num) total = num;
-                    } else {
-                        break;
-                    }
-                }
-
-                // 검색 결과로 어휘를 출력할 경우?
-                if (!(context->flags & KRD_FLAG_PART_EXAM)) {
-                    if (order > MAX_ORDER_COUNT) break;
-
-                    if (streq(elem, "word")) {
-                        strncpy(item.word, content, sizeof(item.word));
-                    } else if (streq(elem, "pos")) {
-                        strncpy(item.pos, content, sizeof(item.pos));
-                    } else if (streq(elem, "link")) {
-                        strncpy(item.link, content, sizeof(item.link));
-                    } else if (streq(elem, "origin")) {
-                        strncpy(item.origin, content, sizeof(item.origin));
-                    } else if (streq(elem, "sense_order") || streq(elem, "sense_no")) {
-                        order = atoi(content);
-                    } else if (streq(elem, "definition") || streq(elem, "trans_word")) {
-                        strncpy(item.dfn, content, sizeof(item.dfn));
-                    } else if (streq(elem, "trans_dfn")) {
-                        strncpy(item.exam, content, sizeof(item.exam));
-                    } else if (streq(elem, "sense")) {
-                        const char *item_pos = strlen(item.pos) > 0 ? item.pos : "?";
-
-                        len = strlen(buffer);
-
-                        if (strlen(item.origin) > 0) {
-                            snprintf(
-                                buffer + len, 
-                                sizeof(buffer) - len,
-                                "[**%s (%s) 「%s」**](%s)\n\n",
-                                item.word,
-                                item.origin,
-                                item_pos,
-                                item.link
-                            );
-                        } else {
-                            snprintf(
-                                buffer + len, 
-                                sizeof(buffer) - len,
-                                "[**%s 「%s」**](%s)\n\n",
-                                item.word,
-                                item_pos,
-                                item.link
-                            );
-                        }
-
-                        if (context->flags & KRD_FLAG_TRANSLATED) {
-                            len = strlen(buffer);
-
-                            snprintf(
-                                buffer + len, 
-                                sizeof(buffer) - len,
-                                "**%d. %s**\n",
-                                order,
-                                item.dfn
-                            );
-
-                            len = strlen(buffer);
-
-                            snprintf(
-                                buffer + len, 
-                                sizeof(buffer) - len,
-                                "- %s\n\n",
-                                item.exam
-                            );
-                        } else {
-                            len = strlen(buffer);
-
-                            snprintf(
-                                buffer + len, 
-                                sizeof(buffer) - len,
-                                "- %s\n\n",
-                                item.dfn
-                            );
-                        }
-                    }
-                } else {
-                    if (order > MAX_EXAMPLE_COUNT) break;
-
-                    if (streq(elem, "word")) {
-                        strncpy(item.word, content, sizeof(item.word));
-                    } else if (streq(elem, "example")) {
-                        strncpy(item.exam, content, sizeof(item.exam));
-                    } else if (streq(elem, "link")) {
-                        strncpy(item.link, content, sizeof(item.link));
-
-                        len = strlen(buffer);
-
-                        snprintf(
-                            buffer + len, 
-                            sizeof(buffer) - len,
-                            "%d. %s\n\n",
-                            order,
-                            item.exam
-                        );
-
-                        order++;
-                    }
-                }
-
-                elem = parser->elem;
-
-                break;
-        }
-
-        if (total <= 0) break;
-    }
+    int total = sr_command_krdict_parse_data(
+        res, 
+        buffer, 
+        sizeof(buffer), 
+        context->flags
+    );
 
     struct discord *client = sr_get_client();
 
@@ -604,7 +631,6 @@ static void on_response(CURLV_STR res, void *user_data) {
     discord_unclaim(client, context->event);
 
     free(context);
-    free(parser);
 }
 
 /* 응답 결과로 받은 오류 메시지를 처리한다. */

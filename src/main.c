@@ -15,7 +15,7 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "saerom.h"
+#include <saerom.h>
 
 int main(int argc, char *argv[]) {
     sr_bot_init(argc, argv);

@@ -21,9 +21,9 @@
 #include <curlv.h>
 #include <json.h>
 
-#include "saerom.h"
+#include <saerom.h>
 
-#define PAPAGO_REQUEST_URL "https://openapi.naver.com/v1/papago/n2mt"
+#define PAPAGO_REQUEST_URL      "https://openapi.naver.com/v1/papago/n2mt"
 
 /* | `papago` 모듈 자료형 정의... | */
 

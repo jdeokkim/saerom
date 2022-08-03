@@ -18,10 +18,10 @@
 #include <string.h>
 #include <sigar.h>
 
+#include <saerom.h>
+
 #define CURLV_IMPLEMENTATION
 #include <curlv.h>
-
-#include "saerom.h"
 
 /* | `bot` 모듈 매크로 정의... | */
 

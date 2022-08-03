@@ -22,7 +22,7 @@
 #include <pthread.h>
 #include <json.h>
 
-#include "saerom.h"
+#include <saerom.h>
 
 /* | `utils` 모듈 매크로 정의... | */
 

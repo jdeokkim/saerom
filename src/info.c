@@ -17,7 +17,7 @@
 
 #include <time.h>
 
-#include "saerom.h"
+#include <saerom.h>
 
 /* | `info` 모듈 상수 및 변수... | */
 
