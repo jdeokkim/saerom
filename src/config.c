@@ -196,7 +196,7 @@ const char *sr_config_get_papago_client_secret(void) {
     return config.papago.client_secret;
 }
 
-/* Discord 봇의 모듈 플래그 데이터를 `flags`로 설정한다. */
+/* Discord 봇의 모듈 플래그 데이터를 설정한다. */
 void sr_config_set_module_flags(u64bitmask flags) {
     pthread_mutex_lock(&config.lock);
 
@@ -205,7 +205,7 @@ void sr_config_set_module_flags(u64bitmask flags) {
     pthread_mutex_unlock(&config.lock);
 }
 
-/* Discord 봇의 상태 플래그 데이터를 `flags`로 설정한다. */
+/* Discord 봇의 상태 플래그 데이터를 설정한다. */
 void sr_config_set_status_flags(u64bitmask flags) {
     pthread_mutex_lock(&config.lock);
 

@@ -118,9 +118,6 @@ static void on_component_interaction(
 /* 요청 URL에서 응답을 받았을 때 호출되는 함수. */
 static void on_response(CURLV_STR res, void *user_data);
 
-/* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct sr_command_context *context, const char *code);
-
 /* `/krd` 명령어를 생성한다. */
 void sr_command_krdict_init(struct discord *client) {
     discord_create_global_application_command(
@@ -175,7 +172,7 @@ void sr_command_krdict_run(
     );
 }
 
-/* /`krd` 명령어의 오픈 API 요청을 생성한다. */
+/* `/krd` 명령어 명령어의 오픈 API 요청을 생성한다. */
 void sr_command_krdict_create_request(
     struct discord *client,
     const struct discord_interaction *event,
@@ -232,6 +229,50 @@ void sr_command_krdict_create_request(
     request.user_data = context;
 
     curlv_create_request(sr_get_curlv(), &request);
+}
+
+/* `/krd` 명령어 처리 과정에서 발생한 오류를 처리한다. */
+void sr_command_krdict_handle_error(
+    struct sr_command_context *context, 
+    const char *code
+) {
+     if (context == NULL || code == NULL) return; 
+
+    log_warn(
+        "[SAEROM] An error (`%s`) has occured while processing the request",
+        code
+    );
+
+    struct discord *client = sr_get_client();
+
+    struct discord_embed embeds[] = {
+        {
+            .title = "Results",
+            .description = "An unknown error has occured while processing "
+                           "your request.",
+            .timestamp = discord_timestamp(client),
+            .footer = &(struct discord_embed_footer) {
+                .text = "🗒️"
+            }
+        }
+    };
+
+    discord_edit_original_interaction_response(
+        client,
+        sr_config_get_application_id(),
+        context->event->token,
+        &(struct discord_edit_original_interaction_response) {
+            .embeds = &(struct discord_embeds) {
+                .size = sizeof(embeds) / sizeof(*embeds),
+                .array = embeds
+            }
+        },
+        NULL
+    );
+
+    discord_unclaim(client, context->event);
+
+    free(context);
 }
 
 /* `/krd` 명령어의 응답 데이터를 가공한다. */
@@ -592,7 +633,6 @@ static void on_response(CURLV_STR res, void *user_data) {
     struct discord_embed embeds[] = {
         {
             .title = "Results",
-            .description = "No results found.",
             .timestamp = discord_timestamp(client),
             .footer = &(struct discord_embed_footer) {
                 .text = "🗒️"
@@ -600,7 +640,12 @@ static void on_response(CURLV_STR res, void *user_data) {
         }
     };
 
-    if (total > 0) embeds[0].description = buffer;
+    if (total < 0) {
+        sr_command_krdict_handle_error(context, buffer);
+
+        return;
+    } else if (total == 0) embeds[0].description = "No results found.";
+    else embeds[0].description = buffer;
 
     discord_edit_original_interaction_response(
         client,
@@ -611,47 +656,6 @@ static void on_response(CURLV_STR res, void *user_data) {
                 .size = (total > 0) ? sizeof(action_rows) / sizeof(*action_rows) : 0,
                 .array = action_rows
             },
-            .embeds = &(struct discord_embeds) {
-                .size = sizeof(embeds) / sizeof(*embeds),
-                .array = embeds
-            }
-        },
-        NULL
-    );
-
-    discord_unclaim(client, context->event);
-
-    free(context);
-}
-
-/* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct sr_command_context *context, const char *code) {
-    if (context == NULL || code == NULL) return; 
-
-    log_warn(
-        "[SAEROM] An error (`%s`) has occured while processing the request",
-        code
-    );
-
-    struct discord *client = sr_get_client();
-
-    struct discord_embed embeds[] = {
-        {
-            .title = "Results",
-            .description = "An unknown error has occured while processing "
-                           "your request.",
-            .timestamp = discord_timestamp(client),
-            .footer = &(struct discord_embed_footer) {
-                .text = "🗒️"
-            }
-        }
-    };
-
-    discord_edit_original_interaction_response(
-        client,
-        sr_config_get_application_id(),
-        context->event->token,
-        &(struct discord_edit_original_interaction_response) {
             .embeds = &(struct discord_embeds) {
                 .size = sizeof(embeds) / sizeof(*embeds),
                 .array = embeds

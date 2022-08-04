@@ -29,7 +29,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.4.0"
+#define APPLICATION_VERSION      "v0.4.1-dev"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -132,10 +132,10 @@ const char *sr_config_get_papago_client_id(void);
 /* Discord 봇의 NAVER™ Papago NMT API 클라이언트 시크릿을 반환한다. */
 const char *sr_config_get_papago_client_secret(void);
 
-/* Discord 봇의 모듈 플래그 데이터를 `flags`로 설정한다. */
+/* Discord 봇의 모듈 플래그 데이터를 설정한다. */
 void sr_config_set_module_flags(u64bitmask flags);
 
-/* Discord 봇의 상태 플래그 데이터를 `flags`로 설정한다. */
+/* Discord 봇의 상태 플래그 데이터를 설정한다. */
 void sr_config_set_status_flags(u64bitmask flags);
 
 /* | `info` 모듈 함수... | */
@@ -166,7 +166,7 @@ void sr_command_krdict_run(
     const struct discord_interaction *event
 );
 
-/* /`krd` 명령어의 오픈 API 요청을 생성한다. */
+/* `/krd` 명령어의 오픈 API 요청을 생성한다. */
 void sr_command_krdict_create_request(
     struct discord *client,
     const struct discord_interaction *event,
@@ -174,6 +174,12 @@ void sr_command_krdict_create_request(
     const char *query,
     const char *part,
     const char *translated
+);
+
+/* `/krd` 명령어 처리 과정에서 발생한 오류를 처리한다. */
+void sr_command_krdict_handle_error(
+    struct sr_command_context *context, 
+    const char *code
 );
 
 /* `/krd` 명령어의 응답 데이터를 가공한다. */
@@ -222,6 +228,12 @@ void sr_command_papago_cleanup(struct discord *client);
 void sr_command_papago_run(
     struct discord *client,
     const struct discord_interaction *event
+);
+
+/* `/ppg` 명령어 처리 과정에서 발생한 오류를 처리한다. */
+void sr_command_papago_handle_error(
+    struct sr_command_context *context, 
+    const char *code
 );
 
 /* | `utils` 모듈 함수... | */

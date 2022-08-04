@@ -96,9 +96,6 @@ static void on_response_from_krdict(CURLV_STR res, void *user_data);
 /* NAVER™ Papago NMT API로부터 응답을 받았을 때 호출되는 함수. */
 static void on_response_from_papago(CURLV_STR res, void *user_data);
 
-/* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct sr_command_context *context, const char *code);
-
 /* `/ppg` 명령어를 생성한다. */
 void sr_command_papago_init(struct discord *client) {
     discord_create_global_application_command(
@@ -249,6 +246,56 @@ void sr_command_papago_run(
     );
 }
 
+/* `/ppg` 명령어 처리 과정에서 발생한 오류를 처리한다. */
+void sr_command_papago_handle_error(
+    struct sr_command_context *context, 
+    const char *code
+) {
+    if (context == NULL || code == NULL) return;
+
+    log_warn("[SAEROM] An error (`%s`) has occured while processing the request", code);
+
+    struct discord *client = sr_get_client();
+
+    struct discord_embed embeds[] = {
+        {
+            .title = "Translation",
+            .timestamp = discord_timestamp(client),
+            .footer = &(struct discord_embed_footer) {
+                .text = "🌏"
+            }
+        }
+    };
+    
+    if (streq(code, "024"))
+        embeds[0].description = "Invalid client id or client secret given, "
+                                "please check your configuration file.";
+    else if (streq(code, "N2MT05"))
+        embeds[0].description = "Target language must not be the same as the "
+                                "source language.";
+    else
+        embeds[0].description = "An unknown error has occured while processing "
+                                "your request.";
+
+    discord_edit_original_interaction_response(
+        client,
+        sr_config_get_application_id(),
+        context->event->token,
+        &(struct discord_edit_original_interaction_response) {
+            .embeds = &(struct discord_embeds) {
+                .size = sizeof(embeds) / sizeof(*embeds),
+                .array = embeds
+            }
+        },
+        NULL
+    );
+
+    discord_unclaim(client, context->event);
+
+    free(context->data);
+    free(context);
+}
+
 /* 컴포넌트와의 상호 작용 시에 호출되는 함수. */
 static void on_component_interaction(
     struct discord *client,
@@ -326,7 +373,12 @@ static void on_response_from_krdict(CURLV_STR res, void *user_data) {
         }
     };
 
-    if (total > 0) embeds[0].description = buffer;
+    if (total < 0) {
+        sr_command_krdict_handle_error(context, buffer);
+
+        return;
+    } else if (total == 0) embeds[0].description = "No results found.";
+    else embeds[0].description = buffer;
 
     discord_edit_original_interaction_response(
         client,
@@ -363,7 +415,7 @@ static void on_response_from_papago(CURLV_STR res, void *user_data) {
     struct sr_command_context *context = (struct sr_command_context *) user_data;
     
     if (node != NULL) {
-        handle_error(context, node->string_);
+        sr_command_papago_handle_error(context, node->string_);
 
         json_delete(root);
 
@@ -454,51 +506,4 @@ static void on_response_from_papago(CURLV_STR res, void *user_data) {
     free(context);
 
     json_delete(root);
-}
-
-/* 응답 결과로 받은 오류 메시지를 처리한다. */
-static void handle_error(struct sr_command_context *context, const char *code) {
-    if (context == NULL || code == NULL) return;
-
-    log_warn("[SAEROM] An error (`%s`) has occured while processing the request", code);
-
-    struct discord *client = sr_get_client();
-
-    struct discord_embed embeds[] = {
-        {
-            .title = "Translation",
-            .timestamp = discord_timestamp(client),
-            .footer = &(struct discord_embed_footer) {
-                .text = "🌏"
-            }
-        }
-    };
-    
-    if (streq(code, "024"))
-        embeds[0].description = "Invalid client id or client secret given, "
-                                "please check your configuration file.";
-    else if (streq(code, "N2MT05"))
-        embeds[0].description = "Target language must not be the same as the "
-                                "source language.";
-    else
-        embeds[0].description = "An unknown error has occured while processing "
-                                "your request.";
-
-    discord_edit_original_interaction_response(
-        client,
-        sr_config_get_application_id(),
-        context->event->token,
-        &(struct discord_edit_original_interaction_response) {
-            .embeds = &(struct discord_embeds) {
-                .size = sizeof(embeds) / sizeof(*embeds),
-                .array = embeds
-            }
-        },
-        NULL
-    );
-
-    discord_unclaim(client, context->event);
-
-    free(context->data);
-    free(context);
 }
