@@ -21,7 +21,7 @@
 #include <saerom.h>
 
 #define CURLV_IMPLEMENTATION
-#include <curlv.h>
+#include "curlv.h"
 
 /* | `bot` 모듈 매크로 정의... | */
 
@@ -146,8 +146,8 @@ struct discord *sr_get_client(void) {
 }
 
 /* `CURLV` 인터페이스를 반환한다. */
-void *sr_get_curlv(void) {
-    return (void *) curlv;
+CURLV *sr_get_curlv(void) {
+    return curlv;
 }
 
 /* Discord 봇의 명령어 목록을 반환한다. */
@@ -203,7 +203,7 @@ static void on_idle(struct discord *client) {
     curlv_read_requests(curlv);
 
     // CPU 사용량 최적화
-    cog_sleep_us(1);
+    cog_sleep_us(1L);
 }
 
 /* Discord 봇의 클라이언트가 준비되었을 때 호출된다. */

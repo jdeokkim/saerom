@@ -68,7 +68,7 @@ void *read_input(void *arg) {
     for (;;) {
         memset(context, 0, sizeof(context));
 
-        if (fgets(context, sizeof(context), stdin)) ;
+        if (fgets(context, sizeof(context), stdin)) /* no-op */;
 
         context[strcspn(context, "\r\n")] = '\0';
 
@@ -84,8 +84,7 @@ void *read_input(void *arg) {
             }
         }
 
-        if (!run_success) 
-            log_error("[SAEROM] Command not found: `/%s`", context);
+        if (!run_success) log_error("[SAEROM] Command not found: `/%s`", context);
     }
 
     pthread_exit(NULL);

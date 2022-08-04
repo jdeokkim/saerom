@@ -29,7 +29,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.4.1-dev"
+#define APPLICATION_VERSION      "v0.4.1"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -86,7 +86,7 @@ void sr_bot_run(void);
 struct discord *sr_get_client(void);
 
 /* `CURLV` 인터페이스를 반환한다. */
-void *sr_get_curlv(void);
+CURLV *sr_get_curlv(void);
 
 /* Discord 봇의 명령어 목록을 반환한다. */
 const struct sr_command *sr_get_commands(int *len);

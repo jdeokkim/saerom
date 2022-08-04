@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <curlv.h>
 #include <json.h>
 
 #include <saerom.h>

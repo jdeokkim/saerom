@@ -20,7 +20,7 @@
 
 #include <pthread.h>
 
-#include "saerom.h"
+#include <saerom.h>
 
 /* | `config` 모듈 자료형 정의... | */
 

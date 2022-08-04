@@ -18,10 +18,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <curlv.h>
 #include <yxml.h>
 
-#include "saerom.h"
+#include <saerom.h>
 
 /* | `krdict` 모듈 매크로 정의... | */
 
