@@ -15,9 +15,6 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <string.h>
-
 #include <json.h>
 
 #include <saerom.h>
@@ -223,10 +220,10 @@ void sr_command_papago_run(
 
     request.header = curl_slist_append(request.header, buffer);
 
-    struct sr_command_context *context = malloc(sizeof(struct sr_command_context));
+    struct sr_command_context *context = malloc(sizeof(*context));
 
     context->event = discord_claim(client, event);
-    context->data = malloc((strlen(text) + 1) * sizeof(char));
+    context->data = malloc((strlen(text) + 1) * sizeof(*text));
 
     strcpy(context->data, text);
 

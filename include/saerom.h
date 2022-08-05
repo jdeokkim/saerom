@@ -19,6 +19,8 @@
 #define SAEROM_H
 
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <concord/cog-utils.h>
 #include <concord/discord.h>
@@ -29,7 +31,7 @@
 /* | 매크로 정의... | */
 
 #define APPLICATION_NAME         "jdeokkim/saerom"
-#define APPLICATION_VERSION      "v0.4.1"
+#define APPLICATION_VERSION      "v0.4.2"
 #define APPLICATION_DESCRIPTION  "A C99 Discord bot for Korean learning servers."
 #define APPLICATION_PROJECT_URL  "https://github.com/jdeokkim/saerom"
 
@@ -239,7 +241,7 @@ void sr_command_papago_handle_error(
 /* | `utils` 모듈 함수... | */
 
 /* 주어진 사용자의 프로필 사진 URL을 반환한다. */
-const char *get_avatar_url(const struct discord_user *user);
+char *get_avatar_url(const struct discord_user *user);
 
 /* 표준 입력 스트림 (`stdin`)에서 명령어를 입력받는다. */
 void *read_input(void *arg);

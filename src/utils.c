@@ -16,8 +16,6 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <pthread.h>
 #include <json.h>
@@ -31,8 +29,8 @@
 /* | `utils` 모듈 함수... | */
 
 /* 주어진 사용자의 프로필 사진 URL을 반환한다. */
-const char *get_avatar_url(const struct discord_user *user) {
-    static char buffer[MAX_STRING_SIZE];
+char *get_avatar_url(const struct discord_user *user) {
+    char *buffer = malloc(MAX_STRING_SIZE * sizeof(*buffer));
 
     if (user->avatar != NULL) {
         snprintf(

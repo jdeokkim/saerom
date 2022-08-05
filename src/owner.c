@@ -15,9 +15,6 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <string.h>
-
 #include <saerom.h>
 
 /* | `owner` 모듈 함수... | */
@@ -176,8 +173,10 @@ void sr_command_msg_run(
         sizeof(struct discord_interaction)
     );
 
+    const size_t token_length = strlen(event->token) + 1;
+
     event_clone->id = event->id;
-    event_clone->token = malloc(strlen(event->token) + 1);
+    event_clone->token = malloc(token_length * sizeof(*(event->token)));
 
     strcpy(event_clone->token, event->token);
 

@@ -120,6 +120,8 @@ void sr_command_info_run(
         },
     };
 
+    char *avatar_url = get_avatar_url(discord_get_self(client));
+
     struct discord_embed embeds[] = {
         {
             .title = APPLICATION_NAME,
@@ -130,7 +132,7 @@ void sr_command_info_run(
                 .text = "✨"
             },
             .thumbnail = &(struct discord_embed_thumbnail) {
-                .url = (char *) get_avatar_url(discord_get_self(client))
+                .url = get_avatar_url(discord_get_self(client))
             },
             .fields = &(struct discord_embed_fields) {
                 .size = sizeof(fields) / sizeof(*fields),
@@ -156,4 +158,6 @@ void sr_command_info_run(
         &params, 
         NULL
     );
+
+    free(avatar_url);
 }

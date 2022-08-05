@@ -15,9 +15,6 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <string.h>
-
 #include <yxml.h>
 
 #include <saerom.h>
@@ -218,7 +215,7 @@ void sr_command_krdict_create_request(
     curl_easy_setopt(request.easy, CURLOPT_SSL_VERIFYPEER, false);
     curl_easy_setopt(request.easy, CURLOPT_POST, 1);
 
-    struct sr_command_context *context = malloc(sizeof(struct sr_command_context));
+    struct sr_command_context *context = malloc(sizeof(*context));
 
     context->event = discord_claim(client, event);
 
@@ -283,7 +280,7 @@ int sr_command_krdict_parse_data(
 ) {
     if (xml.len == 0 || buffer == NULL) return 0;
 
-    yxml_t *parser = malloc(sizeof(yxml_t) + xml.len);
+    yxml_t *parser = malloc(sizeof(*parser) + xml.len);
 
     yxml_init(parser, parser + 1, xml.len);
 
