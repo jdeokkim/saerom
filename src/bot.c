@@ -130,6 +130,7 @@ void sr_bot_cleanup(void) {
     
     log_info("[SAEROM] Cleaning up global resources");
 
+    // TODO: Segmentation Fault?
     discord_cleanup(client);
 
     ccord_global_cleanup();

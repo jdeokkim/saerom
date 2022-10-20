@@ -58,7 +58,7 @@ $ sudo apt install build-essential cmake git libcurl4-openssl-dev
 
 This project uses [GNU Make](https://www.gnu.org/software/make) as the build system.
 
-1. Install the latest version of [Cogmasters/concord](https://github.com/Cogmasters/concord) from the `dev` branch.
+1. Install the latest version of [Cogmasters/concord](https://github.com/Cogmasters/concord).
 
 ```console
 $ git clone https://github.com/Cogmasters/concord && cd concord
